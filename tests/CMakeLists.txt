@@ -9,6 +9,12 @@ if (NOT Boost_USE_STATIC_LIBS)
     add_definitions(-DBOOST_TEST_DYN_LINK)
 endif()
 
+if (USE_SERIALIZATION_SUPPORT)
+    set(ISMRMRD_SERIALIZE_TEST
+          test_serialize.cpp
+          test_compression.cpp)
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include ${Boost_INCLUDE_DIR})
 
 add_executable(test_ismrmrd
@@ -18,6 +24,7 @@ add_executable(test_ismrmrd
     test_ndarray.cpp
     test_flags.cpp
     test_channels.cpp
+    ${ISMRMRD_SERIALIZE_TEST}
     test_quaternions.cpp)
 
 target_link_libraries(test_ismrmrd ismrmrd ${Boost_LIBRARIES})

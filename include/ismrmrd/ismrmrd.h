@@ -193,6 +193,11 @@ enum ISMRMRD_ImageTypes {
  */
 enum ISMRMRD_ImageFlags {
     ISMRMRD_IMAGE_IS_NAVIGATION_DATA =  1,
+
+    ISMRMRD_IMAGE_COMPRESSION1       = 53,
+    ISMRMRD_IMAGE_COMPRESSION2       = 54,
+    ISMRMRD_IMAGE_COMPRESSION3       = 55,
+    ISMRMRD_IMAGE_COMPRESSION4       = 56,
     ISMRMRD_IMAGE_USER1              = 57,
     ISMRMRD_IMAGE_USER2              = 58,
     ISMRMRD_IMAGE_USER3              = 59,
@@ -508,6 +513,7 @@ public:
 /// MR Acquisition type
 class EXPORTISMRMRD Acquisition {
     friend class Dataset;
+    friend class Serialize;
 public:
     // Constructors, assignment, destructor
     Acquisition();
@@ -647,6 +653,7 @@ public:
 /// MR Image type
 template <typename T> class EXPORTISMRMRD Image {
     friend class Dataset;
+    friend class Serialize;
 public:
     // Constructors
     Image(uint16_t matrix_size_x = 0, uint16_t matrix_size_y = 1,
@@ -811,6 +818,7 @@ protected:
 /// N-Dimensional array type
 template <typename T> class EXPORTISMRMRD NDArray {
     friend class Dataset;
+    friend class Serialize;
 public:
     // Constructors, destructor and copy
     NDArray();
