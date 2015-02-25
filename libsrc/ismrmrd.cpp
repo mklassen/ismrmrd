@@ -1298,48 +1298,6 @@ template <typename T> T & NDArray<T>::operator () (uint16_t x, uint16_t y, uint1
        return static_cast<T*>(arr.data)[index];
 }
 
-// Specializations
-// Allowed data types for Images and NDArrays
-template <> EXPORTISMRMRD ISMRMRD_DataTypes get_data_type<uint16_t>()
-{
-    return ISMRMRD_USHORT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<int16_t>()
-{
-    return ISMRMRD_SHORT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<uint32_t>()
-{
-    return ISMRMRD_UINT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<int32_t>()
-{
-    return ISMRMRD_INT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<float>()
-{
-    return ISMRMRD_FLOAT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<double>()
-{
-    return ISMRMRD_DOUBLE;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<complex_float_t>()
-{
-    return ISMRMRD_CXFLOAT;
-}
-
-template <> EXPORTISMRMRD inline ISMRMRD_DataTypes get_data_type<complex_double_t>()
-{
-    return ISMRMRD_CXDOUBLE;
-}
-
 // Images
 template EXPORTISMRMRD class Image<uint16_t>;
 template EXPORTISMRMRD class Image<int16_t>;

@@ -73,6 +73,12 @@ typedef int bool;
 #include <vector>
 #endif /* __cplusplus */
 
+/* Type Checking */
+#ifdef __cplusplus
+#include <typeinfo>
+#include <stdexcept>
+#endif /* __cplusplus */
+
 /* Exports needed for MS C++ */
 #include "ismrmrd/export.h"
 
@@ -458,7 +464,40 @@ bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right);
 
 
 /// Allowed data types for Images and NDArrays
-template <typename T> EXPORTISMRMRD ISMRMRD_DataTypes get_data_type();
+template <typename T> EXPORTISMRMRD ISMRMRD_DataTypes get_data_type()
+{
+    ISMRMRD_DataTypes type;
+    if (typeid(T) == typeid(uint16_t))
+        type = ISMRMRD_USHORT;
+    else if (typeid(T) == typeid(unsigned short))
+    {
+        static_assert(sizeof(uint16_t) == sizeof(unsigned short), "uint16_t and unsigned short are not equivalent");
+        type = ISMRMRD_USHORT;
+    }
+    else if (typeid(T) == typeid(int16_t))
+        type = ISMRMRD_SHORT;
+    else if (typeid(T) == typeid(short))
+    {
+        static_assert(sizeof(int16_t) == sizeof(short), "int16_t and short are not equivalent");
+        type = ISMRMRD_SHORT;
+    }
+    else if (typeid(T) == typeid(uint32_t))
+        type = ISMRMRD_UINT;
+    else if (typeid(T) == typeid(int32_t))
+        type = ISMRMRD_INT;
+    else if (typeid(T) == typeid(float))
+        type = ISMRMRD_FLOAT;
+    else if (typeid(T) == typeid(double))
+        type = ISMRMRD_DOUBLE;
+    else if (typeid(T) == typeid(complex_float_t))
+        type = ISMRMRD_CXFLOAT;
+    else if (typeid(T) == typeid(complex_double_t))
+        type = ISMRMRD_CXDOUBLE;
+    else
+        throw std::runtime_error(build_exception_string());
+
+    return type;
+}
 
 /// Convenience class for flags
 class EXPORTISMRMRD FlagBit
