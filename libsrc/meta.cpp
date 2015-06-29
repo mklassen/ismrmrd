@@ -35,6 +35,7 @@ namespace ISMRMRD {
         }
     }
 
+#ifndef PUGIXML_NO_STL
     void serialize(const MetaContainer &h, std::ostream &o) {
         pugi::xml_document doc;
         pugi::xml_node root = doc.append_child("ismrmrdMeta");
@@ -50,5 +51,6 @@ namespace ISMRMRD {
         }
         doc.save(o);
     }
+#endif
 
 }
