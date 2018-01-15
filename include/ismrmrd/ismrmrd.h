@@ -534,7 +534,7 @@ EXPORTISMRMRD void ismrmrd_quaternion_to_directions(float const quat[4], float r
 
 #pragma pack(pop) /* Restore old alignment */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) || defined(__CLION_IDE__)
 } // extern "C"
 
 ///  ISMRMRD C++ Interface
