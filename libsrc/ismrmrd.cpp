@@ -19,7 +19,11 @@ bool operator==(const EncodingCounters& ec1, const EncodingCounters& ec2){
         ec1.repetition == ec2.repetition &&
         ec1.set == ec2.set &&
         ec1.segment == ec2.segment &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+        memcmp(ec1.user, ec2.user, sizeof(ec1.user)) == 0;
+#else
         std::equal(std::begin(ec1.user),std::end(ec1.user),std::begin(ec2.user));
+#endif
 
 
 }
@@ -31,25 +35,46 @@ bool operator==(ISMRMRD_AcquisitionHeader const &left, ISMRMRD_AcquisitionHeader
            (left.measurement_uid == right.measurement_uid) &&
            (left.scan_counter == right.scan_counter) &&
            (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.physiology_time_stamp, right.physiology_time_stamp, sizeof(left.physiology_time_stamp)) == 0 &&
+#else
            std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+#endif
            (left.number_of_samples == right.number_of_samples) &&
            (left.available_channels == right.available_channels) &&
            (left.active_channels == right.active_channels) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.channel_mask, right.channel_mask, sizeof(left.channel_mask)) == 0 &&
+#else
            std::equal(std::begin(left.channel_mask), std::end(left.channel_mask), std::begin(right.channel_mask)) &&
+#endif
            (left.discard_pre == right.discard_pre) &&
            (left.discard_post == right.discard_post) &&
            (left.center_sample == right.center_sample) &&
            (left.encoding_space_ref == right.encoding_space_ref) &&
            (left.trajectory_dimensions == right.trajectory_dimensions) &&
            (left.sample_time_us == right.sample_time_us) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.position, right.position, sizeof(left.position)) == 0 &&
+           memcmp(left.read_dir, right.read_dir, sizeof(left.read_dir)) == 0 &&
+           memcmp(left.phase_dir, right.phase_dir, sizeof(left.phase_dir)) == 0 &&
+           memcmp(left.slice_dir, right.slice_dir, sizeof(left.slice_dir)) == 0 &&
+           memcmp(left.patient_table_position, right.patient_table_position, sizeof(left.patient_table_position)) == 0 &&
+#else
            std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
            std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
            std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
            std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
            std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+#endif
            (left.idx == right.idx) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0 &&
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0;
+#else
            std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
            std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+#endif
 }
 
 bool operator==(ISMRMRD_Acquisition const &left, ISMRMRD_Acquisition const &right)
@@ -65,14 +90,27 @@ bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &righ
            (left.data_type == right.data_type) &&
            (left.flags == right.flags) &&
            (left.measurement_uid == right.measurement_uid) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.matrix_size, right.matrix_size, sizeof(left.matrix_size)) == 0 &&
+           memcmp(left.field_of_view, right.field_of_view, sizeof(left.field_of_view)) == 0 &&
+#else
            std::equal(std::begin(left.matrix_size), std::end(left.matrix_size), std::begin(right.matrix_size)) &&
            std::equal(std::begin(left.field_of_view), std::end(left.field_of_view), std::begin(right.field_of_view)) &&
+#endif
            (left.channels == right.channels) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.position, right.position, sizeof(left.position)) == 0 &&
+           memcmp(left.read_dir, right.read_dir, sizeof(left.read_dir)) == 0 &&
+           memcmp(left.phase_dir, right.phase_dir, sizeof(left.phase_dir)) == 0 &&
+           memcmp(left.slice_dir, right.slice_dir, sizeof(left.slice_dir)) == 0 &&
+           memcmp(left.patient_table_position, right.patient_table_position, sizeof(left.patient_table_position)) == 0 &&
+#else
            std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
            std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
            std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
            std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
            std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+#endif
            (left.average == right.average) &&
            (left.slice == right.slice) &&
            (left.contrast == right.contrast) &&
@@ -80,14 +118,23 @@ bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &righ
            (left.repetition == right.repetition) &&
            (left.set == right.set) &&
            (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.physiology_time_stamp, right.physiology_time_stamp, sizeof(left.physiology_time_stamp)) == 0 &&
+#else
            std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+#endif
            (left.image_type == right.image_type) &&
            (left.image_index == right.image_index) &&
            (left.image_series_index == right.image_series_index) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0 &&
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0;
+#else
            std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
            std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+#endif
 }
-
+
 bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right)
 {
     return (left.head == right.head) &&
@@ -100,7 +147,11 @@ bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right)
     return (left.version == right.version) &&
            (left.data_type == right.data_type) &&
            (left.ndim == right.ndim) &&
+#if (defined(__cplusplus) && (__cplusplus < 201103L))
+           memcmp(left.dims, right.dims, sizeof(*(left.dims) * left.ndims)) == 0 &&
+#else
            std::equal(std::begin(left.dims), std::begin(left.dims) + left.ndim, std::begin(right.dims)) &&
+#endif
            ((left.data == right.data) || ((left.data != NULL) && (right.data != NULL) && (memcmp(left.data, right.data, ismrmrd_size_of_ndarray_data(&left)) == 0)));
 }
 
