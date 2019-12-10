@@ -154,7 +154,7 @@ EXPORTISMRMRD int ismrmrd_read_array(const ISMRMRD_Dataset *dataset, const char 
 EXPORTISMRMRD uint32_t ismrmrd_get_number_of_arrays(const ISMRMRD_Dataset *dset, const char *varname);
 
     
-#ifdef __cplusplus
+#if defined(__cplusplus) || defined(__CLION_IDE__)
 } /* extern "C" */
 
 //  ISMRMRD Dataset C++ Interface

@@ -51,7 +51,7 @@ EXPORTISMRMRD int ismrmrd_init_waveform(ISMRMRD_Waveform*);
 EXPORTISMRMRD int ismrmrd_init_waveformheader(ISMRMRD_WaveformHeader* header);
 EXPORTISMRMRD int ismrmrd_copy_waveform(ISMRMRD_Waveform* dest, const ISMRMRD_Waveform* src);
 
-#ifdef __cplusplus
+#if defined(__cplusplus) || defined(__CLION_IDE__)
 }
     struct EXPORTISMRMRD WaveformHeader : public ISMRMRD_WaveformHeader {
 
