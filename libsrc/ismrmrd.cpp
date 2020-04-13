@@ -23,6 +23,87 @@ bool operator==(const EncodingCounters& ec1, const EncodingCounters& ec2){
 
 
 }
+
+bool operator==(ISMRMRD_AcquisitionHeader const &left, ISMRMRD_AcquisitionHeader const &right)
+{
+    return (left.version == right.version) &&
+           (left.flags == right.flags) &&
+           (left.measurement_uid == right.measurement_uid) &&
+           (left.scan_counter == right.scan_counter) &&
+           (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+           std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+           (left.number_of_samples == right.number_of_samples) &&
+           (left.available_channels == right.available_channels) &&
+           (left.active_channels == right.active_channels) &&
+           std::equal(std::begin(left.channel_mask), std::end(left.channel_mask), std::begin(right.channel_mask)) &&
+           (left.discard_pre == right.discard_pre) &&
+           (left.discard_post == right.discard_post) &&
+           (left.center_sample == right.center_sample) &&
+           (left.encoding_space_ref == right.encoding_space_ref) &&
+           (left.trajectory_dimensions == right.trajectory_dimensions) &&
+           (left.sample_time_us == right.sample_time_us) &&
+           std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
+           std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
+           std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
+           std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
+           std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+           (left.idx == right.idx) &&
+           std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
+           std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+}
+
+bool operator==(ISMRMRD_Acquisition const &left, ISMRMRD_Acquisition const &right)
+{
+    return (left.head == right.head) &&
+           ((left.traj == right.traj) || ((left.traj != NULL) && (right.traj != NULL) && (memcmp(left.traj, right.traj, ismrmrd_size_of_acquisition_traj(&left)) == 0))) &&
+           ((left.data == right.data) || ((left.data != NULL) && (right.data != NULL) && (memcmp(left.data, right.data, ismrmrd_size_of_acquisition_data(&left)) == 0)));
+}
+
+bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &right)
+{
+    return (left.version == right.version) &&
+           (left.data_type == right.data_type) &&
+           (left.flags == right.flags) &&
+           (left.measurement_uid == right.measurement_uid) &&
+           std::equal(std::begin(left.matrix_size), std::end(left.matrix_size), std::begin(right.matrix_size)) &&
+           std::equal(std::begin(left.field_of_view), std::end(left.field_of_view), std::begin(right.field_of_view)) &&
+           (left.channels == right.channels) &&
+           std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
+           std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
+           std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
+           std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
+           std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+           (left.average == right.average) &&
+           (left.slice == right.slice) &&
+           (left.contrast == right.contrast) &&
+           (left.phase == right.phase) &&
+           (left.repetition == right.repetition) &&
+           (left.set == right.set) &&
+           (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+           std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+           (left.image_type == right.image_type) &&
+           (left.image_index == right.image_index) &&
+           (left.image_series_index == right.image_series_index) &&
+           std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
+           std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+}
+
+bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right)
+{
+    return (left.head == right.head) &&
+           (memcmp(left.attribute_string, right.attribute_string, ismrmrd_size_of_image_attribute_string(&left)) == 0) &&
+           ((left.data == right.data) || ((left.data != NULL) && (right.data != NULL) && (memcmp(left.data, right.data, ismrmrd_size_of_image_data(&left)) == 0)));
+}
+
+bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right)
+{
+    return (left.version == right.version) &&
+           (left.data_type == right.data_type) &&
+           (left.ndim == right.ndim) &&
+           std::equal(std::begin(left.dims), std::begin(left.dims) + left.ndim, std::begin(right.dims)) &&
+           ((left.data == right.data) || ((left.data != NULL) && (right.data != NULL) && (memcmp(left.data, right.data, ismrmrd_size_of_ndarray_data(&left)) == 0)));
+}
+
 //
 // AcquisitionHeader class implementation
 //
@@ -66,30 +147,8 @@ void AcquisitionHeader::setAllChannelsNotActive() {
 
 bool AcquisitionHeader::operator==(const AcquisitionHeader &hdr) const {
 
-    return version == hdr.version &&
-           flags == hdr.flags &&
-           measurement_uid == hdr.measurement_uid &&
-           scan_counter == hdr.scan_counter &&
-           acquisition_time_stamp == hdr.acquisition_time_stamp &&
-           std::equal(std::begin(physiology_time_stamp), std::end(physiology_time_stamp), std::begin(hdr.physiology_time_stamp)) &&
-           number_of_samples == hdr.number_of_samples &&
-           available_channels == hdr.available_channels &&
-           active_channels == hdr.active_channels &&
-           std::equal(std::begin(channel_mask), std::end(channel_mask), std::begin(hdr.channel_mask)) &&
-           discard_pre == hdr.discard_pre &&
-           discard_post == hdr.discard_post &&
-           center_sample == hdr.center_sample &&
-           encoding_space_ref == hdr.encoding_space_ref &&
-           trajectory_dimensions == hdr.trajectory_dimensions &&
-           sample_time_us == hdr.sample_time_us &&
-           std::equal(std::begin(position), std::end(position), std::begin(hdr.position)) &&
-           std::equal(std::begin(read_dir), std::end(read_dir), std::begin(hdr.read_dir)) &&
-           std::equal(std::begin(phase_dir), std::end(phase_dir), std::begin(hdr.phase_dir)) &&
-           std::equal(std::begin(slice_dir), std::end(slice_dir), std::begin(hdr.slice_dir)) &&
-           std::equal(std::begin(patient_table_position), std::end(patient_table_position), std::begin(hdr.patient_table_position)) &&
-           idx == hdr.idx &&
-           std::equal(std::begin(user_int), std::end(user_int), std::begin(hdr.user_int)) &&
-           std::equal(std::begin(user_int), std::end(user_int), std::begin(hdr.user_int));
+   ISMRMRD_AcquisitionHeader const &left = *this;
+   return left == hdr;
 }
 
 //
@@ -139,6 +198,11 @@ Acquisition & Acquisition::operator= (const Acquisition &other) {
         }
     }
     return *this;
+}
+
+bool Acquisition::operator==(Acquisition const &other) const
+{
+   return this->acq == other.acq;
 }
 
 Acquisition::~Acquisition() {
@@ -439,6 +503,11 @@ template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
         }
     }
     return *this;
+}
+
+template <typename T> bool Image<T>::operator== (const Image<T> &other) const
+{
+   return this->im == other.im;
 }
 
 template <typename T> Image<T>::~Image() {
@@ -1098,6 +1167,11 @@ template <typename T> NDArray<T> & NDArray<T>::operator= (const NDArray<T> &othe
         }
     }
     return *this;
+}
+
+template <typename T> bool NDArray<T>::operator== (const NDArray<T> &other) const
+{
+    return this->arr == other.arr;
 }
 
 template <typename T> uint16_t NDArray<T>::getVersion() const {
