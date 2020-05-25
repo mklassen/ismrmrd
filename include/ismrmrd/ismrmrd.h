@@ -588,6 +588,7 @@ public:
     // Constructors
     AcquisitionHeader();
 
+    AcquisitionHeader(ISMRMRD_AcquisitionHeader const &header): ISMRMRD_AcquisitionHeader(header) {};
 
     bool operator==(const AcquisitionHeader& acq) const;
 
@@ -738,6 +739,8 @@ class EXPORTISMRMRD ImageHeader: public ISMRMRD_ImageHeader {
 public:
     // Constructor
     ImageHeader();
+
+    ImageHeader(ISMRMRD_ImageHeader const &header): ISMRMRD_ImageHeader(header) {};
 
     // Flag methods
     bool isFlagSet(const uint64_t val);
