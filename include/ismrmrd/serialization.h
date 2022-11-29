@@ -17,7 +17,7 @@
  *
  * This file contains functions for serializing and deserializing ISMRMRD data
  * The standalone function that serialize to and deserialize from a stream will
- * serrialize the data structures without adding "message id" identifiers.
+ * serialize the data structures without adding "message id" identifiers.
  * The ProtocolSerializer and ProtocolDeserializer classes are used to to create streams
  * that include the message id in front of each message.
  *
