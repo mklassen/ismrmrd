@@ -23,7 +23,26 @@
  *
  */
 
+#if __cplusplus >= 202002L
+#include <bit>
+static_assert(std::endian::native == std::endian::little, "Serialization only supported on little endian platforms");
+#else
+static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "Serialization only supported on little endian platforms");
+#endif
+
+#if __cplusplus > 199711L
+static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialization only supports IEEE 754 standardized floating point");
+#else
+#warning Serialization compatibility checks require c++11 or later
+#endif
+
 namespace ISMRMRD {
+
+#if __cplusplus > 199711L
+static_assert(std::is_trivially_copyable<AcquisitionHeader>::value, "AcquisitionHeader is not trivially copyable");
+static_assert(std::is_trivially_copyable<ImageHeader>::value, "AcquisitionHeader is not trivially copyable");
+static_assert(std::is_trivially_copyable<ISMRMRD_WaveformHeader>::value, "AcquisitionHeader is not trivially copyable");
+#endif
 
 enum ISMRMRD_MESSAGE_ID {
     ISMRMRD_MESSAGE_UNPEEKED = 0,
