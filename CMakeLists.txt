@@ -13,6 +13,7 @@ foreach(p
   endif()
 endforeach()
 project(ISMRMRD)
+set(CMAKE_CXX_STANDARD 20)
 
 # set project specific cmake module path
 set (ISMRMRD_CMAKE_DIR ${PROJECT_SOURCE_DIR}/cmake CACHE PATH
@@ -67,7 +68,7 @@ elseif (build4GE)
     set(CMAKE_CXX_FLAGS             "${CMAKE_CXX_FLAGS} -w -std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0")
 else ()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Werror")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++20 -Werror")
 endif ()
 
 #  ---   VERSIONING  (begin) ----
