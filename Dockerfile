@@ -1,0 +1,47 @@
+# Build and run:
+#   docker build -t clion/ubuntu/cpp-env:1.0 -f Dockerfile.cpp-env-ubuntu .
+
+FROM ubuntu:22.04
+
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get -y install tzdata
+
+RUN apt-get update \
+  && apt-get install -y build-essential \
+      gcc \
+      g++ \
+      gdb \
+      clang \
+      make \
+      ninja-build \
+      cmake \
+      autoconf \
+      automake \
+      libtool \
+      valgrind \
+      locales-all \
+      dos2unix \
+      rsync \
+      tar \
+      python3 \
+      python3-dev \
+      libhdf5-dev \
+      wget \
+      libcereal-dev \
+      libfftw3-dev \
+      libboost-all-dev \
+      git \
+  && apt-get clean
+
+RUN cd /opt \
+       && wget https://github.com/LLNL/zfp/releases/download/1.0.0/zfp-1.0.0.tar.gz \
+       && tar xfz zfp-1.0.0.tar.gz \
+       && cd zfp-1.0.0 \
+       && mkdir cmake-build \
+       && cd cmake-build \
+       && cmake .. \
+       && make install \
+       && cd / \
+       && rm -rf /opt/zfp*
+
+RUN sed -i "57d" /usr/share/cmake/cereal/cerealTargets.cmake
+
