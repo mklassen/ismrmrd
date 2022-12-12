@@ -30,7 +30,7 @@ size_t integerPower(size_t base, size_t exponent) {
 }
 
 // Overloaded methods for selecting encoder
-ulong (*get_encoder(uint dims, int32 *))(zfp_stream *, const int32 *) {
+size_t (*get_encoder(uint dims, int32 *))(zfp_stream *, const int32 *) {
     auto table = { zfp_encode_block_int32_1,
                    zfp_encode_block_int32_2,
                    zfp_encode_block_int32_3,
@@ -38,7 +38,7 @@ ulong (*get_encoder(uint dims, int32 *))(zfp_stream *, const int32 *) {
     return *(table.begin() + (dims - 1));
 }
 
-ulong (*get_encoder(uint dims, int64 *))(zfp_stream *, const int64 *) {
+size_t (*get_encoder(uint dims, int64 *))(zfp_stream *, const int64 *) {
     auto table = { zfp_encode_block_int64_1,
                    zfp_encode_block_int64_2,
                    zfp_encode_block_int64_3,
@@ -47,7 +47,7 @@ ulong (*get_encoder(uint dims, int64 *))(zfp_stream *, const int64 *) {
 }
 
 // Overloaded functions for selecting decoded
-ulong (*get_decoder(uint dims, int32 *))(zfp_stream *, int32 *) {
+size_t (*get_decoder(uint dims, int32 *))(zfp_stream *, int32 *) {
     auto table = { zfp_decode_block_int32_1,
                    zfp_decode_block_int32_2,
                    zfp_decode_block_int32_3,
@@ -55,7 +55,7 @@ ulong (*get_decoder(uint dims, int32 *))(zfp_stream *, int32 *) {
     return *(table.begin() + (dims - 1));
 }
 
-ulong (*get_decoder(uint dims, int64 *))(zfp_stream *, int64 *) {
+size_t (*get_decoder(uint dims, int64 *))(zfp_stream *, int64 *) {
     auto table = { zfp_decode_block_int64_1,
                    zfp_decode_block_int64_2,
                    zfp_decode_block_int64_3,
@@ -158,12 +158,12 @@ compress(zfp_stream *zfp, const zfp_field *field) {
     size_t ny = field->ny ? field->ny : 1;
     size_t nz = field->nz ? field->nz : 1;
     size_t nw = field->nw ? field->nw : 1;
-    ssize_t sx = field->sx ? field->sx : 1;
-    ssize_t sy = field->sy ? field->sy : (ssize_t)nx;
-    ssize_t sz = field->sz ? field->sz : (ssize_t)(nx * ny);
-    ssize_t sw = field->sw ? field->sw : (ssize_t)(nx * ny * nz);
+    ptrdiff_t sx = field->sx ? field->sx : 1;
+    ptrdiff_t sy = field->sy ? field->sy : (ptrdiff_t)nx;
+    ptrdiff_t sz = field->sz ? field->sz : (ptrdiff_t)(nx * ny);
+    ptrdiff_t sw = field->sw ? field->sw : (ptrdiff_t)(nx * ny * nz);
 
-    ulong (*encode)(zfp_stream *, const D *) = get_encoder(dims, oblock);
+    size_t (*encode)(zfp_stream *, const D *) = get_encoder(dims, oblock);
 
     for (w = 0; w < nw; w += zfp_block_size) {
         for (z = 0; z < nz; z += zfp_block_size) {
@@ -228,12 +228,12 @@ decompress(zfp_stream *zfp, zfp_field *field) {
     size_t ny = field->ny ? field->ny : 1;
     size_t nz = field->nz ? field->nz : 1;
     size_t nw = field->nw ? field->nw : 1;
-    ssize_t sx = field->sx ? field->sx : 1;
-    ssize_t sy = field->sy ? field->sy : (ssize_t)(nx);
-    ssize_t sz = field->sz ? field->sz : (ssize_t)(nx * ny);
-    ssize_t sw = field->sw ? field->sw : (ssize_t)(nx * ny * nz);
+    ptrdiff_t sx = field->sx ? field->sx : 1;
+    ptrdiff_t sy = field->sy ? field->sy : (ptrdiff_t)(nx);
+    ptrdiff_t sz = field->sz ? field->sz : (ptrdiff_t)(nx * ny);
+    ptrdiff_t sw = field->sw ? field->sw : (ptrdiff_t)(nx * ny * nz);
 
-    ulong (*decode)(zfp_stream *, D *) = get_decoder(dims, iblock);
+    size_t (*decode)(zfp_stream *, D *) = get_decoder(dims, iblock);
 
     for (w = 0; w < nw; w += 4) {
         for (z = 0; z < nz; z += 4) {
