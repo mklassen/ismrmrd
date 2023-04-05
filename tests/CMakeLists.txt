@@ -37,6 +37,7 @@ add_executable(test_ismrmrd
     test_xml_header.cpp
     test_quaternions.cpp
     test_serialization.cpp
+    test_ismrmrd.cpp
     ${ISMRMRD_SERIALIZE_TEST}
     test_dataset.cpp)
 

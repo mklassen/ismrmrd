@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include "ismrmrd/ismrmrd.h"
+#include <cassert>
 
 namespace ISMRMRD {
 
@@ -464,7 +465,7 @@ void ImageHeader::clearAllFlags() {
 template <typename T> Image<T>::Image(uint16_t matrix_size_x,
                                       uint16_t matrix_size_y,
                                       uint16_t matrix_size_z,
-                                      uint16_t channels)
+                                      uint16_t channels) : pim(std::make_unique<ISMRMRD_Image>()), im(*pim)
 {
     if (ismrmrd_init_image(&im) != ISMRMRD_NOERROR) {
         throw std::runtime_error(build_exception_string());
@@ -473,7 +474,11 @@ template <typename T> Image<T>::Image(uint16_t matrix_size_x,
     resize(matrix_size_x, matrix_size_y, matrix_size_z, channels);
 }
 
-template <typename T> Image<T>::Image(const Image<T> &other) {
+template <typename T> Image<T>::Image(std::unique_ptr<ISMRMRD_Image> pimg) : pim(std::move(pimg)), im(*pim){
+   assert(pim->head.data_type == get_data_type<T>());
+}
+
+template <typename T> Image<T>::Image(const Image<T> &other) : pim(std::make_unique<ISMRMRD_Image>()), im(*pim) {
     int err = 0;
     // This is a deep copy
     err = ismrmrd_init_image(&im);
@@ -485,6 +490,8 @@ template <typename T> Image<T>::Image(const Image<T> &other) {
         throw std::runtime_error(build_exception_string());
     }
 }
+
+template <typename T> Image<T>::Image(Image<T> &&other) : pim(std::move(other.pim)), im(*pim) {}
 
 template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
 {
@@ -505,13 +512,21 @@ template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
     return *this;
 }
 
+//template <typename T> Image<T> & Image<T>::operator=(Image<T> &&other){
+//   pim = std::move(other.pim);
+//   // can't re-bind a reference. only use this method if "im" member is removed and class is updated to use only pim.
+//   return *this;
+//}
+
 template <typename T> bool Image<T>::operator== (const Image<T> &other) const
 {
    return this->im == other.im;
 }
 
 template <typename T> Image<T>::~Image() {
-    ismrmrd_cleanup_image(&im);
+   if (pim) {
+      ismrmrd_cleanup_image(pim.get());
+   }
 }
 
 // Image dimensions

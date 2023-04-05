@@ -79,6 +79,11 @@ typedef int bool;
 #include <vector>
 #endif /* __cplusplus */
 
+/* Unique_ptr */
+#ifdef __cplusplus
+#include <memory>
+#endif /* __cplusplus */
+
 /* Exports needed for MS C++ */
 #include "ismrmrd/export.h"
 
@@ -769,11 +774,14 @@ public:
     // Constructors
     Image(uint16_t matrix_size_x = 0, uint16_t matrix_size_y = 1,
           uint16_t matrix_size_z = 1, uint16_t channels = 1);
+    Image(std::unique_ptr<ISMRMRD_Image> pim);
     Image(const Image &other);
+    Image(Image &&other);
     Image & operator= (const Image &other);
+    //Image & operator= (Image &&other); //only implement if ISMRMRD::Image.im is removed from the class
     bool operator==(const Image<T> &other) const;
 
-    ~Image();
+    virtual ~Image();
 
     // Image dimensions
     void resize(uint16_t matrix_size_x, uint16_t matrix_size_y, uint16_t matrix_size_z, uint16_t channels);
@@ -923,7 +931,8 @@ public:
     T & operator () (uint16_t x, uint16_t y=0, uint16_t z=0 , uint16_t channel =0);
 
 protected:
-    ISMRMRD_Image im;
+    std::unique_ptr<ISMRMRD_Image> pim;
+    ISMRMRD_Image& im;
 };
 
 /// N-Dimensional array type
