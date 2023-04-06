@@ -596,6 +596,8 @@ template <typename T> Image<T>::Image(uint16_t matrix_size_x,
     resize(matrix_size_x, matrix_size_y, matrix_size_z, channels);
 }
 
+template <typename T> Image<T>::Image(std::unique_ptr<ISMRMRD_Image> pim) : im(*pim) {}
+
 template <typename T> Image<T>::Image(const Image<T> &other) {
     int err = 0;
     // This is a deep copy
@@ -607,6 +609,12 @@ template <typename T> Image<T>::Image(const Image<T> &other) {
     if (err) {
         throw std::runtime_error(build_exception_string());
     }
+}
+
+template <typename T> Image<T>::Image(Image &&other) : im(other.im){
+   other.im.data = NULL;
+   other.im.attribute_string = NULL;
+   other.im.head.attribute_string_len = 0;
 }
 
 template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
@@ -626,6 +634,15 @@ template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
         }
     }
     return *this;
+}
+
+template <typename T> Image<T> & Image<T>::operator= (Image &&other){
+   ismrmrd_cleanup_image(&im);
+   im = other.im;
+   other.im.data = NULL;
+   other.im.attribute_string = NULL;
+   other.im.head.attribute_string_len = 0;
+   return *this;
 }
 
 template <typename T> bool Image<T>::operator== (const Image<T> &other) const
