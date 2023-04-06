@@ -24,6 +24,7 @@ set(TEST_SOURCES
     test_channels.cpp
     test_xml_header.cpp
     test_quaternions.cpp
+    test_ismrmrd.cpp
     test_serialization.cpp)
 
 if (USE_HDF5_DATASET_SUPPORT)
