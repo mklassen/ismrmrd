@@ -31,6 +31,7 @@ set(TEST_SOURCES
     test_xml_header.cpp
     test_quaternions.cpp
     ${ISMRMRD_SERIALIZE_TEST}
+    test_ismrmrd.cpp
     test_dataset.cpp
     test_serialization.cpp)
 
