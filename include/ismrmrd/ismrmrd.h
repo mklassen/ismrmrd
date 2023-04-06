@@ -75,6 +75,11 @@ typedef int bool;
 #include <vector>
 #endif /* __cplusplus */
 
+/* Unique_ptr */
+#ifdef __cplusplus
+#include <memory>
+#endif /* __cplusplus */
+
 /* Exports needed for MS C++ */
 #include "ismrmrd/export.h"
 
@@ -792,8 +797,11 @@ public:
     // Constructors
     Image(uint16_t matrix_size_x = 0, uint16_t matrix_size_y = 1,
           uint16_t matrix_size_z = 1, uint16_t channels = 1);
+    Image(std::unique_ptr<ISMRMRD_Image> pim);
     Image(const Image &other);
+    Image(Image &&other);
     Image & operator= (const Image &other);
+    Image & operator= (Image &&other);
     bool operator==(const Image<T> &other) const;
 
     ~Image();
