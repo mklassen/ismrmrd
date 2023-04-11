@@ -1,6 +1,10 @@
 #ifndef NHLBICOMPRESSION_H
 #define NHLBICOMPRESSION_H
 
+#ifdef _WIN32
+#pragma warning(disable : 4244 4334)
+#endif
+#include <algorithm>
 #include <cstdint>
 #include <exception>
 #include <fstream>

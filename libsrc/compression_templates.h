@@ -5,6 +5,9 @@
 #ifndef ISMRMRD_COMPRESSION_TEMPLATES_H
 #define ISMRMRD_COMPRESSION_TEMPLATES_H
 
+#ifdef _WIN32
+#pragma warning(disable : 4267 4293)
+#endif
 #include <cassert>
 #include <iostream>
 #include <zfp.h>
@@ -149,8 +152,8 @@ compress(zfp_stream *zfp, const zfp_field *field) {
 
     auto pData = reinterpret_cast<const S *>(field->data);
     size_t blockSize = integerPower(zfp_block_size, dims);
-    S iblock[blockSize];
-    D oblock[blockSize];
+    S *iblock = new S[blockSize];
+    D *oblock = new D[blockSize];
 
     size_t l, k, j, i;
     size_t x, y, z, w;
@@ -208,6 +211,8 @@ compress(zfp_stream *zfp, const zfp_field *field) {
         }
     }
     zfp_stream_flush(zfp);
+    delete[] iblock;
+    delete[] oblock;
     return zfp_stream_compressed_size(zfp);
 }
 
@@ -219,8 +224,8 @@ decompress(zfp_stream *zfp, zfp_field *field) {
 
     S *pData = reinterpret_cast<S *>(field->data);
     size_t blockSize = integerPower(zfp_block_size, dims);
-    D iblock[blockSize];
-    S oblock[blockSize];
+    D *iblock = new D[blockSize];
+    S *oblock = new S[blockSize];
 
     size_t l, k, j, i;
     size_t x, y, z, w;
@@ -260,6 +265,8 @@ decompress(zfp_stream *zfp, zfp_field *field) {
         }
     }
     zfp_stream_align(zfp);
+    delete[] iblock;
+    delete[] oblock;
     return zfp_stream_compressed_size(zfp);
 }
 

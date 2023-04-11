@@ -27,13 +27,21 @@
 #include <bit>
 static_assert(std::endian::native == std::endian::little, "Serialization only supported on little endian platforms");
 #else
+#ifdef _WIN32
+#pragma message("Serialization endian compatibility checks require c++20 or later")
+#else
 static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "Serialization only supported on little endian platforms");
+#endif // !_WIN32
 #endif
 
 #if __cplusplus > 199711L
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialization only supports IEEE 754 standardized floating point");
 #else
+#ifdef _WIN32
+#pragma message("Serialization floating point compatibility checks require c++11 or later")
+#else
 #warning Serialization compatibility checks require c++11 or later
+#endif // !_WIN32
 #endif
 
 namespace ISMRMRD {
