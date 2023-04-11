@@ -12,8 +12,8 @@ BOOST_AUTO_TEST_CASE(test_promote_uint16) {
     uint terms = 1u << (dims * 2u);
     uint16_t iblock1[] = { 1, 65535, 0, 50 };
     uint16_t iblock2[] = { 1, 1, 1, 1 };
-    int32 oblock1[terms];
-    int32 oblock2[terms];
+    int32 *oblock1 = new int32[terms];
+    int32 *oblock2 = new int32[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
@@ -22,6 +22,8 @@ BOOST_AUTO_TEST_CASE(test_promote_uint16) {
 
     zfp_promote_uint16_to_int32(oblock2, iblock1, dims);
     BOOST_CHECK_EQUAL(memcmp(oblock1, oblock2, sizeof(*oblock1) * terms), 0);
+    delete[] oblock1;
+    delete[] oblock2;
 }
 
 BOOST_AUTO_TEST_CASE(test_promote_int16) {
@@ -29,8 +31,8 @@ BOOST_AUTO_TEST_CASE(test_promote_int16) {
     uint terms = 1u << (dims * 2u);
     int16_t iblock1[] = { 1, 32767, -1, -32768 };
     int16_t iblock2[] = { 1, 1, 1, 1 };
-    int32 oblock1[terms];
-    int32 oblock2[terms];
+    int32 *oblock1 = new int32[terms];
+    int32 *oblock2 = new int32[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
@@ -49,6 +51,8 @@ BOOST_AUTO_TEST_CASE(test_promote_int16) {
 
     zfp_promote_int16_to_int32(oblock2, iblock1, dims);
     BOOST_CHECK_EQUAL(memcmp(oblock1, oblock2, sizeof(*oblock1) * terms), 0);
+    delete[] oblock1;
+    delete[] oblock2;
 }
 
 BOOST_AUTO_TEST_CASE(test_promote_uint8) {
@@ -56,8 +60,8 @@ BOOST_AUTO_TEST_CASE(test_promote_uint8) {
     uint terms = 1u << (dims * 2u);
     uint8_t iblock1[] = { 1, 255, 0, 50 };
     uint8_t iblock2[] = { 1, 1, 1, 1 };
-    int32 oblock1[terms];
-    int32 oblock2[terms];
+    int32 *oblock1 = new int32[terms];
+    int32 *oblock2 = new int32[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
@@ -66,6 +70,8 @@ BOOST_AUTO_TEST_CASE(test_promote_uint8) {
 
     zfp_promote_uint8_to_int32(oblock2, iblock1, dims);
     BOOST_CHECK_EQUAL(memcmp(oblock1, oblock2, sizeof(*oblock1) * terms), 0);
+    delete[] oblock1;
+    delete[] oblock2;
 }
 
 BOOST_AUTO_TEST_CASE(test_promote_int8) {
@@ -73,8 +79,8 @@ BOOST_AUTO_TEST_CASE(test_promote_int8) {
     uint terms = 1u << (dims * 2u);
     int8_t iblock1[] = { 1, 127, -1, -128 };
     int8_t iblock2[] = { 1, 1, 1, 1 };
-    int32 oblock1[terms];
-    int32 oblock2[terms];
+    int32 *oblock1 = new int32[terms];
+    int32 *oblock2 = new int32[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
@@ -93,6 +99,8 @@ BOOST_AUTO_TEST_CASE(test_promote_int8) {
 
     zfp_promote_int8_to_int32(oblock2, iblock1, dims);
     BOOST_CHECK_EQUAL(memcmp(oblock1, oblock2, sizeof(*oblock1) * terms), 0);
+    delete[] oblock1;
+    delete[] oblock2;
 }
 
 BOOST_AUTO_TEST_CASE(test_promote_uint32) {
@@ -100,12 +108,13 @@ BOOST_AUTO_TEST_CASE(test_promote_uint32) {
     uint terms = 1u << (dims * 2u);
     uint32_t iblock1[] = { 1, 4294967295, 0, 50 };
     uint32_t iblock2[] = { 1, 1, 1, 1 };
-    int64 oblock1[terms];
+    int64 *oblock1 = new int64[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
 
     BOOST_CHECK_EQUAL(memcmp(iblock1, iblock2, sizeof(*iblock1) * terms), 0);
+    delete[] oblock1;
 }
 
 BOOST_AUTO_TEST_CASE(test_promote_int32) {
@@ -113,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_promote_int32) {
     uint terms = 1u << (dims * 2u);
     int32_t iblock1[] = { 1, 2147483647, -1, -2147483648 };
     int32_t iblock2[] = { 1, 1, 1, 1 };
-    int64 oblock1[terms];
+    int64 *oblock1 = new int64[terms];
 
     ISMRMRD::_private::promote(oblock1, iblock1, dims);
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
@@ -126,6 +135,7 @@ BOOST_AUTO_TEST_CASE(test_promote_int32) {
     ISMRMRD::_private::demote(iblock2, oblock1, dims);
 
     BOOST_CHECK_EQUAL(memcmp(iblock1, iblock2, sizeof(*iblock1) * terms), 0);
+    delete[] oblock1;
 }
 
 template <typename T, typename D>
@@ -156,8 +166,8 @@ void run_compression(uint nx, uint ny, uint nz, uint nw, zfp_type type) {
         break;
     }
 
-    T data1[terms];
-    T data2[terms];
+    T *data1 = new T[terms];
+    T *data2 = new T[terms];
     std::vector<uint8_t> buffer;
 
     for (size_t i = 0; i < terms; i++)
@@ -188,7 +198,9 @@ void run_compression(uint nx, uint ny, uint nz, uint nw, zfp_type type) {
 
     BOOST_REQUIRE_EQUAL(zfpsize1, zfpsize2);
 
-    BOOST_CHECK_EQUAL(memcmp(data1, data2, sizeof(data2)), 0);
+    BOOST_CHECK_EQUAL(memcmp(data1, data2, sizeof(*data2) * terms), 0);
+    delete[] data1;
+    delete[] data2;
 }
 
 typedef boost::mpl::list<uint16_t, int16_t> test_types;
@@ -237,8 +249,8 @@ BOOST_AUTO_TEST_CASE(test_compress_int32) {
         break;
     }
 
-    int32 data1[terms];
-    int32 data2[terms];
+    int32 *data1 = new int32[terms];
+    int32 *data2 = new int32[terms];
     std::vector<uint8_t> buffer;
 
     for (size_t i = 0; i < terms; i++)
@@ -273,8 +285,9 @@ BOOST_AUTO_TEST_CASE(test_compress_int32) {
     size_t zfpsize2 = zfp_decompress(zfp.get(), field.get());
 
     BOOST_REQUIRE_EQUAL(zfpsize1, zfpsize2);
-
-    BOOST_CHECK_EQUAL(memcmp(data1, data2, sizeof(data2)), 0);
+    BOOST_CHECK_EQUAL(memcmp(data1, data2, sizeof(*data2) * terms), 0);
+    delete[] data1;
+    delete[] data2;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -556,12 +556,12 @@ typedef  ISMRMRD_EncodingCounters EncodingCounters;
  */
 
 
-bool operator==(const EncodingCounters& ec1, const EncodingCounters& ec2);
-bool operator==(ISMRMRD_AcquisitionHeader const &left, ISMRMRD_AcquisitionHeader const &right);
-bool operator==(ISMRMRD_Acquisition const &left, ISMRMRD_Acquisition const &right);
-bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &right);
-bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right);
-bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right);
+EXPORTISMRMRD bool operator==(const EncodingCounters& ec1, const EncodingCounters& ec2);
+EXPORTISMRMRD bool operator==(ISMRMRD_AcquisitionHeader const &left, ISMRMRD_AcquisitionHeader const &right);
+EXPORTISMRMRD bool operator==(ISMRMRD_Acquisition const &left, ISMRMRD_Acquisition const &right);
+EXPORTISMRMRD bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &right);
+EXPORTISMRMRD bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right);
+EXPORTISMRMRD bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right);
 
 
 /// Allowed data types for Images and NDArrays

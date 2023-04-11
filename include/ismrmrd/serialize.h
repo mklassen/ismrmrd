@@ -42,14 +42,14 @@
 // Access to the protected members of ISMRMRD C++ classes via friend
 namespace ISMRMRD {
 
-void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
-void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
+EXPORTISMRMRD void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
+EXPORTISMRMRD void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
-void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer);
-void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
+EXPORTISMRMRD void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer);
+EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
-void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
-void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
+EXPORTISMRMRD void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
+EXPORTISMRMRD void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
 
 struct CompressionParameters {
     float tolerance = 0.0;

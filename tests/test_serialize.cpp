@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#pragma warning(disable : 4267)
+#endif
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/serialize.h"
 #include <boost/mpl/list.hpp>
