@@ -14,7 +14,7 @@ foreach(p
   endif()
 endforeach()
 project(ISMRMRD)
-set(CMAKE_CXX_STANDARD 20)
+#set(CMAKE_CXX_STANDARD 20)
 
 # use, i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -88,7 +88,7 @@ elseif (build4GE)
     set(CMAKE_CXX_FLAGS             "${CMAKE_CXX_FLAGS} -w -std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0")
 else ()
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Werror")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++20 -Werror")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -Werror")
 endif ()
 
 #  ---   VERSIONING  (begin) ----

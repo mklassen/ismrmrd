@@ -35,6 +35,7 @@ static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "Serialization only sup
 #endif
 
 #if __cplusplus > 199711L
+#include <limits>
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialization only supports IEEE 754 standardized floating point");
 #else
 #ifdef _WIN32
