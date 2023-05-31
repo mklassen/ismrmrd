@@ -14,6 +14,10 @@ foreach(p
   endif()
 endforeach()
 project(ISMRMRD)
+if (NOT DBUILD_SHARED_LIBS AND NOT WIN32)
+  SET(CMAKE_FIND_LIBRARY_PREFIXES lib)
+  SET(CMAKE_FIND_LIBRARY_SUFFIXES .a) 
+endif()
 #set(CMAKE_CXX_STANDARD 20)
 
 # use, i.e. don't skip the full RPATH for the build tree
@@ -257,13 +261,15 @@ else ()
     list(APPEND ISMRMRD_TARGET_INCLUDE_DIRS ${PugiXML_INCLUDE_DIR})
     list(APPEND ISMRMRD_TARGET_LINK_LIBS ${PugiXML_LIBRARY})
 endif ()
+    message("PugiXML_LIBRARY" "${PugiXML_LIBRARY}")
+    message("CMAKE_FIND_LIBRARY_SUFFIXES" "${CMAKE_FIND_LIBRARY_SUFFIXES}")
 
 if (build4GE)
    list(APPEND ISMRMRD_TARGET_LINK_LIBS pthread z dl)
 endif ()
 
 # main library
-add_library(ismrmrd SHARED ${ISMRMRD_TARGET_SOURCES})
+add_library(ismrmrd ${ISMRMRD_TARGET_SOURCES})
 target_include_directories(ismrmrd PUBLIC ${ISMRMRD_TARGET_INCLUDE_DIRS})
 if (USE_HDF5_DATASET_SUPPORT)
   target_compile_options(ismrmrd PUBLIC ${HDF5_DEFINITIONS})
