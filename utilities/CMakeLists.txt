@@ -8,9 +8,12 @@ add_executable(ismrmrd_info ismrmrd_info.cpp)
 target_link_libraries(ismrmrd_info ismrmrd)
 install(TARGETS ismrmrd_info DESTINATION bin)
 
-add_executable(ismrmrd_test_xml ismrmrd_test_xml.cpp)
-target_link_libraries(ismrmrd_test_xml ismrmrd)
-install(TARGETS ismrmrd_test_xml DESTINATION bin)
+if (NOT WIN32 AND NOT USE_CPP03_SUPPORT)
+  add_executable(ismrmrd_test_xml
+    ismrmrd_test_xml.cpp)
+  target_link_libraries(ismrmrd_test_xml ismrmrd)
+  install(TARGETS ismrmrd_test_xml DESTINATION bin)
+endif()
 
 if (HDF5_FOUND)
     add_executable(ismrmrd_read_timing_test read_timing_test.cpp)
