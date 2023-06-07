@@ -13,6 +13,12 @@ string(REPLACE "\n" "\\\n" ismrmrd_example_extended ${ismrmrd_example_extended})
 
 configure_file(embedded_xml.h.in embedded_xml.h)
 
+if (USE_SERIALIZATION_SUPPORT)
+    set(ISMRMRD_SERIALIZE_TEST
+          test_serialize.cpp
+          test_compression.cpp)
+endif()
+
 include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include ${Boost_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 set(TEST_SOURCES
@@ -24,6 +30,8 @@ set(TEST_SOURCES
     test_channels.cpp
     test_xml_header.cpp
     test_quaternions.cpp
+    ${ISMRMRD_SERIALIZE_TEST}
+    test_dataset.cpp
     test_serialization.cpp)
 
 if (USE_HDF5_DATASET_SUPPORT)
