@@ -27,6 +27,7 @@
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/complex.hpp>
 #include <cereal/types/vector.hpp>
+#include <limits>
 
 // Streaming is version dependent
 // This file must be updated to reflect the current version of ISMRMRD
@@ -38,6 +39,8 @@
 // Cereal version requires update if ISMRMRD data structures change
 // Not all ISMRMRD data structures are versioned, so serialization versions must be maintained separately
 #define ISMRMRD_SERIALIZE_VERSION 0
+
+static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialize only supports IEEE 754 standardized floating point");
 
 // Access to the protected members of ISMRMRD C++ classes via friend
 namespace ISMRMRD {
