@@ -184,13 +184,14 @@ Acquisition::Acquisition() {
     }
 }
 
-
 Acquisition::Acquisition(uint16_t num_samples, uint16_t active_channels, uint16_t trajectory_dimensions){
     if (ismrmrd_init_acquisition(&acq) != ISMRMRD_NOERROR) {
         throw std::runtime_error(build_exception_string());
     }
     this->resize(num_samples,active_channels,trajectory_dimensions);
 }
+
+Acquisition::Acquisition(std::unique_ptr<ISMRMRD_Acquisition> pacq) : acq(*pacq) {}
 
 Acquisition::Acquisition(const Acquisition &other) {
     int err = 0;
@@ -203,6 +204,11 @@ Acquisition::Acquisition(const Acquisition &other) {
     if (err) {
         throw std::runtime_error(build_exception_string());
     }
+}
+
+Acquisition::Acquisition(Acquisition &&other) : acq(other.acq){
+   other.acq.data = NULL;
+   other.acq.traj = NULL;
 }
 
 Acquisition & Acquisition::operator= (const Acquisition &other) {
@@ -221,6 +227,14 @@ Acquisition & Acquisition::operator= (const Acquisition &other) {
         }
     }
     return *this;
+}
+
+Acquisition & Acquisition::operator= (Acquisition &&other){
+   ismrmrd_cleanup_acquisition(&acq);
+   acq = other.acq;
+   other.acq.data = NULL;
+   other.acq.traj = NULL;
+   return *this;
 }
 
 bool Acquisition::operator==(Acquisition const &other) const
