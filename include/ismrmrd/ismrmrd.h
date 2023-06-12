@@ -626,8 +626,11 @@ public:
     // Constructors, assignment, destructor
     Acquisition();
     Acquisition(uint16_t num_samples, uint16_t active_channels=1, uint16_t trajectory_dimensions=0);
+    Acquisition(std::unique_ptr<ISMRMRD_Acquisition> pacq);
     Acquisition(const Acquisition &other);
+    Acquisition(Acquisition &&other);
     Acquisition & operator= (const Acquisition &other);
+    Acquisition & operator= (Acquisition &&other);
     bool operator==(Acquisition const &other) const;
 
     ~Acquisition();
