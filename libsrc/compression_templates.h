@@ -73,7 +73,7 @@ promote(D *oblock, const S *iblock, size_t points, D extra) {
         // shift is 23, 15, -1, or 31
 
         // D is signed so offset is 2^30 or 2^62
-        D offset = static_cast<unsigned int>(1) << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1);
+        D offset = static_cast<uint64_t>(1) << static_cast<uint64_t>(std::numeric_limits<D>::digits - 1);
 
         // if uint32 to int32
         if (sizeof(S) == sizeof(D)) {
