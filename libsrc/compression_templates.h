@@ -108,10 +108,15 @@ demote(D *oblock, const S *iblock, size_t points, S extra) {
         // shift is divide by 2^shift to range [-2^15, 2^15 - 1] for int16
         // includes extra shifts reduce the range further depending on maximum initial values
         // force the values to be within the range of D
+
         while (points--) {
             S i = *iblock++ >> shift;
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wsign-compare"
             *oblock++ = i < std::numeric_limits<D>::min() ? std::numeric_limits<D>::min() : (i > std::numeric_limits<D>::max() ? std::numeric_limits<D>::max() : static_cast<D>(i));
+            #pragma GCC diagnostic pop
         }
+
     } else {
         // S digits is 8, 16, or 32
         // shift is 23, 15, -1, or 31
