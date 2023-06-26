@@ -455,8 +455,8 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
         // bit-wise or because we only need the MSB, and it is faster than max_element
         auto maximum = std::accumulate(reinterpret_cast<int16 *>(image.data),
                                        reinterpret_cast<int16 *>(image.data) + ismrmrd_size_of_image_data(&image) / ismrmrd_sizeof_data_type(image.head.data_type),
-                                       int16(0),
-                                       [](int16 const &a, int16 const &b) { return a | std::abs(b); });
+                                       uint16(0),
+                                       [](uint16 const &a, int16 const &b) { return a | static_cast<uint16>(std::abs(b)); });
 
         if (maximum) {
             // Shift until MSB is used for maximum value
