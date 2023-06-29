@@ -1313,13 +1313,13 @@ int ismrmrd_append_image(const ISMRMRD_Dataset *dset, const char *varname, const
     dims[1] = im->head.matrix_size[2];
     dims[0] = im->head.channels;
     status = append_element(dset, datapath, im->data, datatype, 4, dims);
+    status = H5Tclose(datatype);
     free(datapath);
     free(path);
     if (status != ISMRMRD_NOERROR) {
         return ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Failed to append image data.");
     }
-    status = H5Tclose(datatype);
-    
+
     /* Final cleanup */
     if (status < 0) {
         H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, walk_hdf5_errors, NULL);
