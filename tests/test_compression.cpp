@@ -133,8 +133,8 @@ BOOST_AUTO_TEST_CASE(test_promote_uint32_int64) {
     uint32_t iblock2[] = { 1, 1, 1, 1 };
     int64 oblock1[terms];
 
-    ISMRMRD::_private::promote(oblock1, iblock1, terms, 0l);
-    ISMRMRD::_private::demote(iblock2, oblock1, terms, 0l);
+    ISMRMRD::_private::promote(oblock1, iblock1, terms, int64(0));
+    ISMRMRD::_private::demote(iblock2, oblock1, terms, int64(0));
 
     BOOST_CHECK_EQUAL(memcmp(iblock1, iblock2, sizeof(*iblock1) * terms), 0);
 }
@@ -146,15 +146,15 @@ BOOST_AUTO_TEST_CASE(test_promote_int32) {
     int32_t iblock2[] = { 1, 1, 1, 1 };
     int64 oblock1[terms];
 
-    ISMRMRD::_private::promote(oblock1, iblock1, terms, 0l);
-    ISMRMRD::_private::demote(iblock2, oblock1, terms, 0l);
+    ISMRMRD::_private::promote(oblock1, iblock1, terms, int64(0));
+    ISMRMRD::_private::demote(iblock2, oblock1, terms, int64(0));
 
     BOOST_CHECK_EQUAL(memcmp(iblock1, iblock2, sizeof(*iblock1) * terms), 0);
 
     iblock1[0] = 0;
 
-    ISMRMRD::_private::promote(oblock1, iblock1, terms, 0l);
-    ISMRMRD::_private::demote(iblock2, oblock1, terms, 0l);
+    ISMRMRD::_private::promote(oblock1, iblock1, terms, int64(0));
+    ISMRMRD::_private::demote(iblock2, oblock1, terms, int64(0));
 
     BOOST_CHECK_EQUAL(memcmp(iblock1, iblock2, sizeof(*iblock1) * terms), 0);
 }
