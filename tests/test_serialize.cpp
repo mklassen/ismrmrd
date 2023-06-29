@@ -264,6 +264,29 @@ BOOST_AUTO_TEST_CASE(test_Waveform_serialize) {
     check(value1, value2);
 }
 
+BOOST_AUTO_TEST_CASE(test_IsmrmrdHeader_serialize) {
+    ISMRMRD::IsmrmrdHeader value1;
+    ISMRMRD::IsmrmrdHeader value2;
+
+    ISMRMRD::Encoding encoding;
+    encoding.encodedSpace = { {32,32,1}, {256,256,5}};
+    encoding.encodingLimits.kspace_encoding_step_0 = ISMRMRD::Limit();
+    encoding.encodingLimits.kspace_encoding_step_1 = ISMRMRD::Limit();
+    encoding.encodingLimits.kspace_encoding_step_0->minimum = 0;
+    encoding.encodingLimits.kspace_encoding_step_0->center = 16;
+    encoding.encodingLimits.kspace_encoding_step_0->maximum = 31;
+    encoding.encodingLimits.kspace_encoding_step_1->minimum = 0;
+    encoding.encodingLimits.kspace_encoding_step_1->center = 16;
+    encoding.encodingLimits.kspace_encoding_step_1->maximum = 31;
+    encoding.reconSpace = { {32, 32, 1}, { 256, 256, 5}};
+    encoding.trajectory = ISMRMRD::TrajectoryType::CARTESIAN;
+    value1.experimentalConditions.H1resonanceFrequency_Hz = 63.87 * 1e6;
+
+    value1.encoding = { encoding };
+
+    check(value1, value2);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_NDArray_serialize, T, test_types) {
     std::vector<size_t> data(3);
     data[0] = data[1] = data[2] = 1;
