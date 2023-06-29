@@ -21,12 +21,14 @@
 
 #include "ismrmrd.h"
 #include "waveform.h"
+#include "xml.h"
 #include <cereal/archives/adapters.hpp>
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/complex.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 #include <limits>
 
 // Streaming is version dependent
@@ -418,6 +420,23 @@ void serialize(Archive &ar, ISMRMRD::Acquisition &acq, const unsigned int versio
     ar(ISMRMRD::Serialize::access(acq));
 }
 
+template <class Archive>
+void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int version) {
+    if (ISMRMRD_SERIALIZE_VERSION != version)
+        throw std::runtime_error("cereal version mismatch");
+
+    if (Archive::is_loading::value) {
+        std::string xml;
+        ar(make_nvp("xml", xml));
+        deserialize(xml.c_str(), header);
+    }
+    else {
+        std::stringstream xml;
+        serialize(header, xml);
+        ar(make_nvp("xml", xml.str()));
+    }
+}
+
 } // namespace cereal
 
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_EncodingCounters, ISMRMRD_SERIALIZE_VERSION);
@@ -429,6 +448,7 @@ CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_NDArray, ISMRMRD_SERIALIZE_VERSION);
 
 CEREAL_CLASS_VERSION(ISMRMRD::AcquisitionHeader, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, ISMRMRD_SERIALIZE_VERSION);
+CEREAL_CLASS_VERSION(ISMRMRD::IsmrmrdHeader, ISMRMRD_SERIALIZE_VERSION);
 
 CEREAL_CLASS_VERSION(ISMRMRD::Acquisition, ISMRMRD_SERIALIZE_VERSION);
 
