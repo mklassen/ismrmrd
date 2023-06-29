@@ -73,7 +73,7 @@ promote(D *oblock, const S *iblock, size_t points, D extra) {
         // shift is 23, 15, -1, or 31
 
         // D is signed so offset is 2^30 or 2^62
-        D offset = 1lu << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1);
+        D offset = static_cast<unsigned int>(1) << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1);
 
         // if uint32 to int32
         if (sizeof(S) == sizeof(D)) {
@@ -104,17 +104,29 @@ demote(D *oblock, const S *iblock, size_t points, S extra) {
         if (sizeof(S) != sizeof(D))
             shift--;
 
+        // By design S and D are both signed (in this branch of if statement) and
+        // D is equal or smaller than S
+        // Therefore calculate the min and max values as S types for comparison
+        // Otherwise compiler complains about signed/unsigned comparison
+        S maxValue = static_cast<S>(std::numeric_limits<D>::max());
+        S minValue = static_cast<S>(std::numeric_limits<D>::min());
+
         // arithmetic right shift assumed, i.e. sign bit is preserved, not shifted (C++20)
         // shift is divide by 2^shift to range [-2^15, 2^15 - 1] for int16
         // includes extra shifts reduce the range further depending on maximum initial values
         // force the values to be within the range of D
         while (points--) {
             S i = *iblock++ >> shift;
-            *oblock++ = i < std::numeric_limits<D>::min() ? std::numeric_limits<D>::min() : (i > std::numeric_limits<D>::max() ? std::numeric_limits<D>::max() : static_cast<D>(i));
+            *oblock++ = i < minValue ? std::numeric_limits<D>::min() : (i > maxValue ? std::numeric_limits<D>::max() : static_cast<D>(i));
         }
     } else {
         // S digits is 8, 16, or 32
         // shift is 23, 15, -1, or 31
+
+        // S is signed and D is unsigned (in this branch of if statement)
+        // Calculate the limits in S type for comparison
+        S minValue = static_cast<S>(std::numeric_limits<D>::min());
+        S maxValue = 0; // Not used unless sizeof(D) < sizeof(S)
 
         // uint32 to int32
         if (sizeof(S) == sizeof(D)) {
@@ -124,18 +136,22 @@ demote(D *oblock, const S *iblock, size_t points, S extra) {
             // shift needs to be 0 not -1
             shift++;
         }
+        else {
+            // D is smaller than S so maximum of D will fit in S
+            maxValue = static_cast<S>(std::numeric_limits<D>::max());
+        }
 
-        S offset = 1lu << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1 - extra);
+        S offset = 1ULL << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1 - extra);
 
         // arithmetic right shift assumed, i.e. sign bit is preserved, not shifted (C++20)
         while (points--) {
             S i = ((*iblock++ >> shift) + offset);
             if (sizeof(S) == sizeof(D))
                 // Because max value in uint32 is larger than int32, no need to check the maximum
-                *oblock++ = i < static_cast<S>(std::numeric_limits<D>::min()) ? std::numeric_limits<D>::min() : static_cast<D>(i);
+                *oblock++ = i < minValue ? std::numeric_limits<D>::min() : static_cast<D>(i);
             else
                 // Limit the range to that handled by the type D
-                *oblock++ = i < static_cast<S>(std::numeric_limits<D>::min()) ? std::numeric_limits<D>::min() : (i > static_cast<S>(std::numeric_limits<D>::max()) ? std::numeric_limits<D>::max() : static_cast<D>(i));
+                *oblock++ = i < minValue ? std::numeric_limits<D>::min() : (i > maxValue ? std::numeric_limits<D>::max() : static_cast<D>(i));
         }
     }
 }
