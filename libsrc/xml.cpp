@@ -630,7 +630,7 @@ namespace ISMRMRD
           case TrajectoryType::OTHER:
               return "other";
       }
-      throw std::runtime_error("Illegal enum class value");
+      throw std::runtime_error("Illegal TrajectoryType enum class value");
   }
 
   std::string to_string(const WaveformType& v)
@@ -650,7 +650,7 @@ namespace ISMRMRD
               return "other";
       }
 
-      throw std::runtime_error("Illegal enum class value");
+      throw std::runtime_error("Illegal WavefromType enum class value");
   }
 
   std::string to_string(const  DiffusionDimension& d){
@@ -684,7 +684,7 @@ namespace ISMRMRD
       case DiffusionDimension::USER_7:
           return "user_7";
       }
-      throw std::runtime_error("Illegal enum class value");
+      throw std::runtime_error("Illegal DiffusionDimension enum class value");
   }
 
 std::string to_string(const MultibandCalibrationType& v)
@@ -698,7 +698,7 @@ std::string to_string(const MultibandCalibrationType& v)
             return "other";
     }
 
-    throw std::runtime_error("Illegal enum class value");
+    throw std::runtime_error("Illegal MultiBandCalibrationType enum class value");
 }
 
 template <class T> void append_optional_node(pugi::xml_node& n, const char* child, const Optional<T>& v)
