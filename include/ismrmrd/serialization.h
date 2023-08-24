@@ -28,9 +28,10 @@
 static_assert(std::endian::native == std::endian::little, "Serialization only supported on little endian platforms");
 #else
 #ifdef _WIN32
-#if (*(WORD *)"\0\x2" == 0x200)
-#pragma message("Serialization only supported on little endian platforms")
-#endif
+//#if (*(WORD *)"\0\x2" == 0x200)
+//#pragma message("Serialization only supported on little endian platforms")
+//#endif
+#pragma message("Serialization endian compatibility checks require c++20 or later")
 #else
 static_assert(__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__, "Serialization only supported on little endian platforms");
 #endif // !_WIN32

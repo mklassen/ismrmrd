@@ -14,7 +14,7 @@ namespace ISMRMRD {
 namespace _private {
 
 #ifdef _WIN32
-#if (*(WORD *)"\0\x2" == 0x200)
+#if (0)//(*(WORD *)"\0\x2" == 0x200)
 #define BIT_STREAM_WORD_TYPE uint8
 #include <zfp/bitstream.inl>
 #else
