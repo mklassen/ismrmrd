@@ -75,9 +75,9 @@ void deserialize_attr_and_pixels(Image<T> &img, ReadableStreamView &rs) {
     uint64_t attr_length;
     rs.read(reinterpret_cast<char *>(&attr_length), sizeof(uint64_t));
     if (attr_length) {
-        std::vector<char> attr(attr_length + 1);
-        rs.read(&attr[0], attr_length);
-        attr[attr_length] = '\0';
+        std::vector<char> attr(static_cast<unsigned int>(attr_length + 1));
+        rs.read(&attr[0], static_cast<size_t>(attr_length));
+        attr[static_cast<unsigned int>(attr_length)] = '\0';
         img.setAttributeString(&attr[0]);
     }
     rs.read(reinterpret_cast<char *>(img.getDataPtr()), img.getDataSize());

@@ -73,7 +73,7 @@ promote(D *oblock, const S *iblock, size_t points, D extra) {
         // shift is 23, 15, -1, or 31
 
         // D is signed so offset is 2^30 or 2^62
-        D offset = 1lu << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1);
+        D offset = 1ULL << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1);
 
         // if uint32 to int32
         if (sizeof(S) == sizeof(D)) {
@@ -111,10 +111,19 @@ demote(D *oblock, const S *iblock, size_t points, S extra) {
 
         while (points--) {
             S i = *iblock++ >> shift;
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wsign-compare"
+            #ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4018 )
+            #else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+            #endif
             *oblock++ = i < std::numeric_limits<D>::min() ? std::numeric_limits<D>::min() : (i > std::numeric_limits<D>::max() ? std::numeric_limits<D>::max() : static_cast<D>(i));
-            #pragma GCC diagnostic pop
+            #ifdef _WIN32
+#pragma warning(pop)
+            #else
+#pragma GCC diagnostic pop
+            #endif
         }
 
     } else {
@@ -129,8 +138,7 @@ demote(D *oblock, const S *iblock, size_t points, S extra) {
             // shift needs to be 0 not -1
             shift++;
         }
-
-        S offset = 1lu << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1 - extra);
+        S offset = 1ULL << static_cast<unsigned int>(std::numeric_limits<D>::digits - 1 - extra);
 
         // arithmetic right shift assumed, i.e. sign bit is preserved, not shifted (C++20)
         while (points--) {
