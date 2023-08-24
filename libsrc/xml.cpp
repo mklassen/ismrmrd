@@ -2,6 +2,7 @@
 #include "ismrmrd/version.h"
 #include <cstdlib>
 #include <iomanip>
+#include <tuple>
 
 namespace ISMRMRD {
 long stoi(const char *str) {
