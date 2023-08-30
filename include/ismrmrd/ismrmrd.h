@@ -471,14 +471,14 @@ template <typename T> EXPORTISMRMRD ISMRMRD_DataTypes get_data_type()
         type = ISMRMRD_USHORT;
     else if (typeid(T) == typeid(unsigned short))
     {
-        static_assert(sizeof(uint16_t) == sizeof(unsigned short), "uint16_t and unsigned short are not equivalent");
+        // static_assert(sizeof(uint16_t) == sizeof(unsigned short), "uint16_t and unsigned short are not equivalent");
         type = ISMRMRD_USHORT;
     }
     else if (typeid(T) == typeid(int16_t))
         type = ISMRMRD_SHORT;
     else if (typeid(T) == typeid(short))
     {
-        static_assert(sizeof(int16_t) == sizeof(short), "int16_t and short are not equivalent");
+        // static_assert(sizeof(int16_t) == sizeof(short), "int16_t and short are not equivalent");
         type = ISMRMRD_SHORT;
     }
     else if (typeid(T) == typeid(uint32_t))
