@@ -134,7 +134,7 @@ bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &righ
            std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
 #endif
 }
-
+
 bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right)
 {
     return (left.head == right.head) &&
@@ -148,7 +148,7 @@ bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right)
            (left.data_type == right.data_type) &&
            (left.ndim == right.ndim) &&
 #if (defined(__cplusplus) && (__cplusplus < 201103L))
-           memcmp(left.dims, right.dims, sizeof(*(left.dims) * left.ndims)) == 0 &&
+           memcmp(left.dims, right.dims, sizeof(*(left.dims) * left.ndim)) == 0 &&
 #else
            std::equal(std::begin(left.dims), std::begin(left.dims) + left.ndim, std::begin(right.dims)) &&
 #endif
