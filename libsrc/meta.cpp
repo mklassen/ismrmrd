@@ -1,3 +1,4 @@
+#include "ismrmrd/version.h"
 #include "ismrmrd/meta.h"
 #include "pugixml.hpp"
 
@@ -35,11 +36,17 @@ namespace ISMRMRD {
         }
     }
 
+#ifndef PUGIXML_NO_STL
     void serialize(const MetaContainer &h, std::ostream &o) {
         pugi::xml_document doc;
         pugi::xml_node root = doc.append_child("ismrmrdMeta");
-
+#if ISMRMRD_ICE_SUPPORT
+        std::map<std::string, std::vector<MetaValue> >::const_iterator iter = h.begin();
+        while (iter != h.end()) {
+            std::pair<std::string, std::vector<MetaValue> > node = *iter++;
+#else
         for (auto &node : h) {
+#endif
             pugi::xml_node meta = root.append_child("meta");
             pugi::xml_node name = meta.append_child("name");
             name.append_child(pugi::node_pcdata).set_value(node.first.c_str());
@@ -50,5 +57,5 @@ namespace ISMRMRD {
         }
         doc.save(o);
     }
-
+#endif
 }

@@ -1,6 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
+#include "ismrmrd/version.h"
+#if !ISMRMRD_ICE_SUPPORT
 #include <stdint.h>
+#endif
 
 /* Language and Cross platform section for defining types */
 #ifdef __cplusplus

@@ -19,7 +19,11 @@ bool operator==(const EncodingCounters& ec1, const EncodingCounters& ec2){
         ec1.repetition == ec2.repetition &&
         ec1.set == ec2.set &&
         ec1.segment == ec2.segment &&
-        std::equal(std::begin(ec1.user),std::end(ec1.user),std::begin(ec2.user));
+        #if ISMRMRD_ICE_SUPPORT
+        memcmp(ec1.user, ec2.user, sizeof(ec1.user)) == 0;
+        #else
+        std::equal(std::begin(ec1.user), std::end(ec1.user), std::begin(ec2.user));
+        #endif
 
 
 }
@@ -31,25 +35,46 @@ bool operator==(ISMRMRD_AcquisitionHeader const &left, ISMRMRD_AcquisitionHeader
            (left.measurement_uid == right.measurement_uid) &&
            (left.scan_counter == right.scan_counter) &&
            (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+           #if ISMRMRD_ICE_SUPPORT
+           memcmp(left.physiology_time_stamp, right.physiology_time_stamp, sizeof(left.physiology_time_stamp)) == 0 &&
+           #else
            std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+           #endif
            (left.number_of_samples == right.number_of_samples) &&
            (left.available_channels == right.available_channels) &&
            (left.active_channels == right.active_channels) &&
+           #if ISMRMRD_ICE_SUPPORT
+           memcmp(left.channel_mask, right.channel_mask, sizeof(left.channel_mask)) == 0 &&
+           #else
            std::equal(std::begin(left.channel_mask), std::end(left.channel_mask), std::begin(right.channel_mask)) &&
+           #endif
            (left.discard_pre == right.discard_pre) &&
            (left.discard_post == right.discard_post) &&
            (left.center_sample == right.center_sample) &&
            (left.encoding_space_ref == right.encoding_space_ref) &&
            (left.trajectory_dimensions == right.trajectory_dimensions) &&
            (left.sample_time_us == right.sample_time_us) &&
+           #if ISMRMRD_ICE_SUPPORT
+           memcmp(left.position, right.position, sizeof(left.position)) == 0 &&
+           memcmp(left.read_dir, right.read_dir, sizeof(left.read_dir)) == 0 &&
+           memcmp(left.phase_dir, right.phase_dir, sizeof(left.phase_dir)) == 0 &&
+           memcmp(left.slice_dir, right.slice_dir, sizeof(left.slice_dir)) == 0 &&
+           memcmp(left.patient_table_position, right.patient_table_position, sizeof(left.patient_table_position)) == 0 &&
+           #else
            std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
            std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
            std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
            std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
            std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+           #endif
            (left.idx == right.idx) &&
+           #if ISMRMRD_ICE_SUPPORT
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0 &&
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0;
+           #else
            std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
            std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+           #endif
 }
 
 bool operator==(ISMRMRD_Acquisition const &left, ISMRMRD_Acquisition const &right)
@@ -65,14 +90,27 @@ bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &righ
            (left.data_type == right.data_type) &&
            (left.flags == right.flags) &&
            (left.measurement_uid == right.measurement_uid) &&
+#if ISMRMRD_ICE_SUPPORT
+           memcmp(left.matrix_size, right.matrix_size, sizeof(left.matrix_size)) == 0 &&
+           memcmp(left.field_of_view, right.field_of_view, sizeof(left.field_of_view)) == 0 &&
+#else
            std::equal(std::begin(left.matrix_size), std::end(left.matrix_size), std::begin(right.matrix_size)) &&
            std::equal(std::begin(left.field_of_view), std::end(left.field_of_view), std::begin(right.field_of_view)) &&
+           #endif
            (left.channels == right.channels) &&
+#if ISMRMRD_ICE_SUPPORT
+           memcmp(left.position, right.position, sizeof(left.position)) == 0 &&
+           memcmp(left.read_dir, right.read_dir, sizeof(left.read_dir)) == 0 &&
+           memcmp(left.phase_dir, right.phase_dir, sizeof(left.phase_dir)) == 0 &&
+           memcmp(left.slice_dir, right.slice_dir, sizeof(left.slice_dir)) == 0 &&
+           memcmp(left.patient_table_position, right.patient_table_position, sizeof(left.patient_table_position)) == 0 &&
+#else
            std::equal(std::begin(left.position), std::end(left.position), std::begin(right.position)) &&
            std::equal(std::begin(left.read_dir), std::end(left.read_dir), std::begin(right.read_dir)) &&
            std::equal(std::begin(left.phase_dir), std::end(left.phase_dir), std::begin(right.phase_dir)) &&
            std::equal(std::begin(left.slice_dir), std::end(left.slice_dir), std::begin(right.slice_dir)) &&
            std::equal(std::begin(left.patient_table_position), std::end(left.patient_table_position), std::begin(right.patient_table_position)) &&
+#endif
            (left.average == right.average) &&
            (left.slice == right.slice) &&
            (left.contrast == right.contrast) &&
@@ -80,12 +118,21 @@ bool operator==(ISMRMRD_ImageHeader const &left, ISMRMRD_ImageHeader const &righ
            (left.repetition == right.repetition) &&
            (left.set == right.set) &&
            (left.acquisition_time_stamp == right.acquisition_time_stamp) &&
+#if ISMRMRD_ICE_SUPPORT
+           memcmp(left.physiology_time_stamp, right.physiology_time_stamp, sizeof(left.physiology_time_stamp)) == 0 &&
+#else
            std::equal(std::begin(left.physiology_time_stamp), std::end(left.physiology_time_stamp), std::begin(right.physiology_time_stamp)) &&
+#endif
            (left.image_type == right.image_type) &&
            (left.image_index == right.image_index) &&
            (left.image_series_index == right.image_series_index) &&
+#if ISMRMRD_ICE_SUPPORT
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0 &&
+           memcmp(left.user_int, right.user_int, sizeof(left.user_int)) == 0;
+#else
            std::equal(std::begin(left.user_int), std::end(left.user_int), std::begin(right.user_int)) &&
            std::equal(std::begin(left.user_float), std::end(left.user_float), std::begin(right.user_float));
+#endif
 }
 
 bool operator==(ISMRMRD_Image const &left, ISMRMRD_Image const &right)
@@ -100,7 +147,11 @@ bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right)
     return (left.version == right.version) &&
            (left.data_type == right.data_type) &&
            (left.ndim == right.ndim) &&
+#if ISMRMRD_ICE_SUPPORT
+           memcmp(left.dims, right.dims, sizeof(*(left.dims) * left.ndim)) == 0 &&
+        #else
            std::equal(std::begin(left.dims), std::begin(left.dims) + left.ndim, std::begin(right.dims)) &&
+#endif
            ((left.data == right.data) || ((left.data != NULL) && (right.data != NULL) && (memcmp(left.data, right.data, ismrmrd_size_of_ndarray_data(&left)) == 0)));
 }
 
@@ -168,7 +219,9 @@ Acquisition::Acquisition(uint16_t num_samples, uint16_t active_channels, uint16_
     this->resize(num_samples,active_channels,trajectory_dimensions);
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 Acquisition::Acquisition(std::unique_ptr<ISMRMRD_Acquisition> pacq) : acq(*pacq) {}
+#endif
 
 Acquisition::Acquisition(const Acquisition &other) {
     int err = 0;
@@ -183,10 +236,12 @@ Acquisition::Acquisition(const Acquisition &other) {
     }
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 Acquisition::Acquisition(Acquisition &&other) : acq(other.acq){
    other.acq.data = NULL;
    other.acq.traj = NULL;
 }
+#endif
 
 Acquisition & Acquisition::operator= (const Acquisition &other) {
     // Assignment makes a copy
@@ -206,6 +261,7 @@ Acquisition & Acquisition::operator= (const Acquisition &other) {
     return *this;
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 Acquisition & Acquisition::operator= (Acquisition &&other){
    ismrmrd_cleanup_acquisition(&acq);
    acq = other.acq;
@@ -213,6 +269,7 @@ Acquisition & Acquisition::operator= (Acquisition &&other){
    other.acq.traj = NULL;
    return *this;
 }
+#endif
 
 bool Acquisition::operator==(Acquisition const &other) const
 {
@@ -587,7 +644,9 @@ template <typename T> Image<T>::Image(uint16_t matrix_size_x,
     resize(matrix_size_x, matrix_size_y, matrix_size_z, channels);
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 template <typename T> Image<T>::Image(std::unique_ptr<ISMRMRD_Image> pim) : im(*pim) {}
+#endif
 
 template <typename T> Image<T>::Image(const Image<T> &other) {
     int err = 0;
@@ -602,11 +661,13 @@ template <typename T> Image<T>::Image(const Image<T> &other) {
     }
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 template <typename T> Image<T>::Image(Image &&other) : im(other.im){
    other.im.data = NULL;
    other.im.attribute_string = NULL;
    other.im.head.attribute_string_len = 0;
 }
+#endif
 
 template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
 {
@@ -627,6 +688,7 @@ template <typename T> Image<T> & Image<T>::operator= (const Image<T> &other)
     return *this;
 }
 
+#if !ISMRMRD_ICE_SUPPORT
 template <typename T> Image<T> & Image<T>::operator= (Image &&other){
    ismrmrd_cleanup_image(&im);
    im = other.im;
@@ -635,6 +697,7 @@ template <typename T> Image<T> & Image<T>::operator= (Image &&other){
    other.im.head.attribute_string_len = 0;
    return *this;
 }
+#endif
 
 template <typename T> bool Image<T>::operator== (const Image<T> &other) const
 {
