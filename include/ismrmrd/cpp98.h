@@ -1,6 +1,8 @@
 #ifndef ISMRMRD_CPP98_H
 #define ISMRMRD_CPP98_H
 
+#include "vstypes.h"
+
 #ifdef __cplusplus
 
 namespace ISMRMRD {
@@ -18,8 +20,6 @@ namespace ISMRMRD {
 }
 
 #if __cplusplus <= 199711L
-
-#include <stdint.h>
 
 #ifdef _MSC_VER
 #ifndef __func__
@@ -46,7 +46,6 @@ using ::uint64_t;
 using ::uint8_t;
 }
 #else
-#include <cstdint>
 namespace ISMRMRD {
 using std::int16_t;
 using std::int32_t;
