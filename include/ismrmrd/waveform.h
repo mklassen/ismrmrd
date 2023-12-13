@@ -20,7 +20,6 @@
 #ifdef __cplusplus
 #include "cpp98.h"
 #include <cstddef>
-#include <stdint.h>
 namespace ISMRMRD {
 extern "C" {
 #endif //ifdef __cplusplus

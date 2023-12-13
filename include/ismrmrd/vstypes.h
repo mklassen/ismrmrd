@@ -8,11 +8,15 @@
 #if __cplusplus > 199711L
 #include <cstdint>
 #elif defined(_MSC_VER) && (_MSC_VER < 1600)
+typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
 typedef unsigned __int64 uint64_t;
+
+typedef signed char int8_t;
 typedef short int16_t;
 typedef long int32_t;
+typedef __int64 int64_t;
 #else
 #include <stdint.h>
 #endif // __cplusplus > 199711L
@@ -20,11 +24,15 @@ typedef long int32_t;
 #else
 
 #if defined(_MSC_VER) && (_MSC_VER < 1600)
+typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
 typedef unsigned __int64 uint64_t;
+
+typedef signed char int8_t;
 typedef short int16_t;
 typedef long int32_t;
+typedef __int64 int64_t;
 
 #ifndef UINT64_C
 # if __WORDSIZE == 64
