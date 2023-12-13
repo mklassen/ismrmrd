@@ -252,7 +252,7 @@ set(ISMRMRD_TARGET_INCLUDE_DIRS
   ${ISMRMRD_DATASET_INCLUDE_DIR}
 )
 
-if (!USE_CPP03_SUPPORT)
+if (NOT USE_CPP03_SUPPORT)
     set (c11_files
       libsrc/serialization.cpp
       libsrc/xml.cpp
