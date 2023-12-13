@@ -34,7 +34,7 @@
 // Streaming is version dependent
 // This file must be updated to reflect the current version of ISMRMRD
 // to ensure that compatibility has been properly tested
-#if (ISMRMRD_VERSION_MAJOR != 1) | (ISMRMRD_VERSION_MINOR != 13) | (ISMRMRD_VERSION_PATCH != 7)
+#if (ISMRMRD_VERSION_MAJOR != 1) | (ISMRMRD_VERSION_MINOR != 14) | (ISMRMRD_VERSION_PATCH != 0)
 #error "Version mismatch for streaming"
 #endif
 
