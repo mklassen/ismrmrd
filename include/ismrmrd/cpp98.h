@@ -2,6 +2,7 @@
 #define ISMRMRD_CPP98_H
 
 #include "vstypes.h"
+#include <cstddef>
 
 #ifdef __cplusplus
 
