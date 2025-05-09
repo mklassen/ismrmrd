@@ -50,8 +50,8 @@ namespace ISMRMRD {
 EXPORTISMRMRD void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
 EXPORTISMRMRD void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
-EXPORTISMRMRD void decompress_image_base(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer);
-EXPORTISMRMRD void compress_image_base(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
+EXPORTISMRMRD void decompress_image(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer);
+EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
 EXPORTISMRMRD void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
 EXPORTISMRMRD void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
@@ -253,7 +253,7 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size
     if (active) {
         std::vector<uint8_t> compressed_data;
 
-        ISMRMRD::compress_image_base(hdr, data, data_sz, compressed_data, precision, tolerance);
+        ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, precision, tolerance);
         ar(make_nvp("data", compressed_data));
     } else {
         archive_data(ar, hdr.data_type, data, data_sz);
@@ -292,7 +292,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t dat
 
         // Decompress data
         ar(compressed_data);
-        ISMRMRD::decompress_image_base(hdr, data, compressed_data);
+        ISMRMRD::decompress_image(hdr, data, compressed_data);
     } else {
         archive_data(ar, hdr.data_type, data, data_sz);
     }

@@ -285,7 +285,7 @@ void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<u
     buffer.resize(zfp_stream_compressed_size(zfp.get()));
 }
 
-void decompress_image_base(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer) {
+void decompress_image(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer) {
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
 
@@ -403,10 +403,10 @@ void decompress_image_base(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::v
 }
 
 void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer) {
-    decompress_image_base(image.head, image.data, buffer);
+    decompress_image(image.head, image.data, buffer);
 }
 
-void compress_image_base(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
+void compress_image(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
 
@@ -629,7 +629,7 @@ void compress_image_base(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, si
 }
 
 void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
-    compress_image_base(image.head,image.data,ISMRMRD::ismrmrd_size_of_image_data(&image),buffer,compression_precision,compression_tolerance);
+    compress_image(image.head,image.data,ISMRMRD::ismrmrd_size_of_image_data(&image),buffer,compression_precision,compression_tolerance);
 }
 
 void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision) {
