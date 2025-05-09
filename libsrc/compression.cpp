@@ -149,9 +149,7 @@ size_t (*get_partial_decoder(uint dims, int64 *))(zfp_stream *, int64 *, size_t,
 }
 } // namespace _private
 
-void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer) {
-    ISMRMRD_AcquisitionHeader &header = acq.head;
-
+void decompress_acquisition(ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, std::vector<uint8_t> &buffer){
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
 
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
@@ -194,41 +192,45 @@ void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8
         break;
     }
 
-    if (nx * ny * nz * nw != (header.number_of_samples * header.active_channels)) {
+    if (nx * ny * nz * nw != (hdr.number_of_samples * hdr.active_channels)) {
         std::stringstream errorstream;
         errorstream << "Size of decompressed stream does not match the acquisition header ";
         errorstream << "nx=" << nx << ", ny=" << ny << ", nz=" << nz << ", nw=" << nw;
-        errorstream << ", number_of_samples=" << header.number_of_samples;
-        errorstream << "active_channels=" << header.active_channels;
+        errorstream << ", number_of_samples=" << hdr.number_of_samples;
+        errorstream << "active_channels=" << hdr.active_channels;
 
         throw std::runtime_error(errorstream.str());
     }
 
-    zfp_field_set_pointer(field.get(), acq.data);
+    zfp_field_set_pointer(field.get(), data);
 
     if (!zfp_decompress(zfp.get(), field.get())) {
         throw std::runtime_error("Unable to decompress real stream");
     }
 
     // Move to the imaginary data and decompress
-    zfp_field_set_pointer(field.get(), reinterpret_cast<uint8_t *>(acq.data) + sizeof(float));
+    zfp_field_set_pointer(field.get(), reinterpret_cast<uint8_t *>(data) + sizeof(float));
     if (!zfp_decompress(zfp.get(), field.get())) {
         throw std::runtime_error("Unable to decompress imaginary stream");
     }
 }
 
-void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
+void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer) {
+    decompress_acquisition(acq.head, acq.data, buffer);
+}
+
+void compress_acquisition(ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance){
     zfp_type type = zfp_type_float;
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
 
-    zfp_field_set_pointer(field.get(), acq.data);
+    zfp_field_set_pointer(field.get(), data);
     zfp_field_set_type(field.get(), type);
 
     // Signal should be smooth in array dimensions.
     // The real and imaginary signal should be independently smooth, but there is no reason to expect smoothness
     // with interleaved real and imaginary values. Compress should be done separately, as recommended by zfp documentation.
-    if (acq.head.active_channels > 1) {
+    if (hdr.active_channels > 1) {
         // There really is also no reason to expect channel to channel data to be smooth without phase alignment
         // eg if alternative channels are 180 out of phase you will have a saw tooth pattern within the block
         // TODO: Add pre compression phase alignment. Ideal you would align the phase of the zero frequency component
@@ -239,11 +241,11 @@ void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<u
         //       compress T = X * W = U * S. Recovery of X would involved decompressing T and computing X = T * W^H
         //       This is significantly more computation, but could improve compression. U may be more compressible,
         //       as the large variation are in S, but then you are storing an additional channels singular values as well
-        zfp_field_set_size_2d(field.get(), acq.head.number_of_samples, acq.head.active_channels);
-        zfp_field_set_stride_2d(field.get(), 2, 2 * acq.head.number_of_samples);
+        zfp_field_set_size_2d(field.get(), hdr.number_of_samples, hdr.active_channels);
+        zfp_field_set_stride_2d(field.get(), 2, 2 * hdr.number_of_samples);
     } else {
         // Single channel so it is a 1D array to compress
-        zfp_field_set_size_1d(field.get(), acq.head.number_of_samples);
+        zfp_field_set_size_1d(field.get(), hdr.number_of_samples);
         zfp_field_set_stride_1d(field.get(), 2);
     }
 
@@ -276,13 +278,17 @@ void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<u
     }
 
     // Move to the imaginary data
-    zfp_field_set_pointer(field.get(), reinterpret_cast<float *>(acq.data) + 1);
+    zfp_field_set_pointer(field.get(), reinterpret_cast<float *>(data) + 1);
     zfpsize = zfp_compress(zfp.get(), field.get());
     if (zfpsize == 0) {
         throw std::runtime_error("Compression imaginary failed");
     }
     zfp_stream_flush(zfp.get());
     buffer.resize(zfp_stream_compressed_size(zfp.get()));
+}
+
+void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
+    compress_acquisition(acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), buffer, compression_precision, compression_tolerance);
 }
 
 void decompress_image(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer) {
@@ -632,18 +638,22 @@ void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer,
     compress_image(image.head,image.data,ISMRMRD::ismrmrd_size_of_image_data(&image),buffer,compression_precision,compression_tolerance);
 }
 
-void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision) {
-    size_t datasize = ismrmrd_size_of_acquisition_data(&acq) * 2;
-    auto d_ptr = reinterpret_cast<float *>(acq.data);
+void compress_acquisition_nhlbi(void* data, size_t data_sz, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision){
+    size_t datasize = data_sz * 2;
+    auto d_ptr = reinterpret_cast<float *>(data);
     CompressedBuffer<float> comp(d_ptr, d_ptr + datasize, tolerance, precision);
     buffer = comp.serialize();
 }
 
-void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer) {
+void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision) {
+    compress_acquisition_nhlbi(acq.data, ismrmrd_size_of_acquisition_data(&acq), buffer, tolerance, precision);
+}
+
+void decompress_acquisition_nhlbi(void* data, size_t data_sz, std::vector<uint8_t> &buffer){
     CompressedBuffer<float> comp;
     comp.deserialize(buffer);
 
-    size_t datasize = ismrmrd_size_of_acquisition_data(&acq) * 2;
+    size_t datasize = data_sz * 2;
 
     if (comp.size() != datasize) { //*2 for complex
         std::stringstream error;
@@ -651,10 +661,14 @@ void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector
         error << " and expected number of samples" << datasize;
     }
 
-    auto d_ptr = reinterpret_cast<float *>(acq.data);
+    auto d_ptr = reinterpret_cast<float *>(data);
     for (size_t i = 0; i < comp.size(); i++) {
         d_ptr[i] = comp[i];
     }
+}
+
+void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer) {
+    decompress_acquisition_nhlbi(acq.data, ismrmrd_size_of_acquisition_data(&acq), buffer);
 }
 
 } // namespace ISMRMRD

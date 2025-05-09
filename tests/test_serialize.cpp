@@ -24,7 +24,7 @@ std::ostream &operator<<(std::ostream &out, T const &value) {
 } // namespace ISMRMRD
 
 template <typename T>
-void check(T &value1, T &value2, bool compression = false) {
+void check(T &value1, T &value2, ISMRMRD::CompressionMethod compression = ISMRMRD::CompressionMethod::none) {
     BOOST_CHECK_NE(value1, value2);
 
     std::stringstream ss;
@@ -32,9 +32,7 @@ void check(T &value1, T &value2, bool compression = false) {
     ISMRMRD::CompressionParameters parameters;
     parameters.tolerance = 0.0;
     parameters.precision = 0;
-    if (compression){
-        parameters.active = true;
-    }
+    parameters.method = compression;
 
     {
         ISMRMRD::CompressiblePortableBinaryOutputArchive oarchive(parameters, ss);
@@ -155,10 +153,10 @@ BOOST_AUTO_TEST_CASE(test_ISMRMRD_Image_serialize) {
 
     value1.head.measurement_uid = 5;
 
-    check(value1, value2, false);
+    check(value1, value2, ISMRMRD::CompressionMethod::none);
     ismrmrd_cleanup_image(&value2);
     BOOST_CHECK_EQUAL(ismrmrd_init_image(&value2), ISMRMRD::ISMRMRD_NOERROR);
-    check(value1, value2, true);
+    check(value1, value2, ISMRMRD::CompressionMethod::zfp);
 
     ismrmrd_cleanup_image(&value1);
     ismrmrd_cleanup_image(&value2);
@@ -233,7 +231,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_Image_serialize_compression, T, test_types) {
     for (size_t i = 0; i < datasize; i++)
         data[i] = 1;
 
-    check(value1, value2, true);
+    check(value1, value2, ISMRMRD::CompressionMethod::zfp);
 
     BOOST_REQUIRE_EQUAL(value1.getHead(), value2.getHead());
 
