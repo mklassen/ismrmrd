@@ -285,7 +285,7 @@ void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<u
     buffer.resize(zfp_stream_compressed_size(zfp.get()));
 }
 
-void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer) {
+void decompress_image_base(ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, std::vector<uint8_t> &buffer) {
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
 
@@ -310,17 +310,17 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
     size_t nw = std::max(field->nw, size_t(1));
 
     constexpr uint16_t min_value = 1;
-    if (nx * ny * nz * nw != (std::max(image.head.matrix_size[0], min_value) *
-                              std::max(image.head.matrix_size[1], min_value) *
-                              std::max(image.head.matrix_size[2], min_value) *
-                              std::max(image.head.channels, min_value))) {
+    if (nx * ny * nz * nw != (std::max(hdr.matrix_size[0], min_value) *
+                              std::max(hdr.matrix_size[1], min_value) *
+                              std::max(hdr.matrix_size[2], min_value) *
+                              std::max(hdr.channels, min_value))) {
         std::stringstream errorstream;
         errorstream << "Size of decompressed stream does not match the image header ";
         errorstream << "nx=" << nx << ", ny=" << ny << ", nz=" << nz << ", nw=" << nw;
-        errorstream << ", matrix=[" << image.head.matrix_size[0];
+        errorstream << ", matrix=[" << hdr.matrix_size[0];
         for (size_t i = 1; i < 3; i++)
-            errorstream << ", " << image.head.matrix_size[i];
-        errorstream << "], channels=" << image.head.channels;
+            errorstream << ", " << hdr.matrix_size[i];
+        errorstream << "], channels=" << hdr.channels;
 
         throw std::runtime_error(errorstream.str());
     }
@@ -331,7 +331,7 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
     void *imaginary_data = nullptr;
 
     ptrdiff_t sx = 0;
-    switch (image.head.data_type) {
+    switch (hdr.data_type) {
     case ISMRMRD::ISMRMRD_USHORT:
         if (field->type != zfp_type_int32) {
             throw std::runtime_error("Wrong image format");
@@ -365,7 +365,7 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
         }
         break;
     case ISMRMRD::ISMRMRD_CXFLOAT:
-        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<float *>(image.data) + 1);
+        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<float *>(data) + 1);
         sx = 2;
     case ISMRMRD::ISMRMRD_FLOAT:
         if (field->type != zfp_type_float) {
@@ -373,7 +373,7 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
         }
         break;
     case ISMRMRD::ISMRMRD_CXDOUBLE:
-        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<double *>(image.data) + 1);
+        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<double *>(data) + 1);
         sx = 2;
     case ISMRMRD::ISMRMRD_DOUBLE:
         if (field->type != zfp_type_double) {
@@ -388,7 +388,7 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
     field->sw = field->sz * static_cast<ptrdiff_t>(field->nz);
 
     // Decompress the real data
-    zfp_field_set_pointer(field.get(), image.data);
+    zfp_field_set_pointer(field.get(), data);
     if (!decompress(zfp.get(), field.get())) {
         throw std::runtime_error("Unable to decompress real stream");
     }
@@ -402,11 +402,15 @@ void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffe
     }
 }
 
-void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
+void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer) {
+    decompress_image_base(image.head, image.data, buffer);
+}
+
+void compress_image_base(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
     auto zfp = std::unique_ptr<zfp_stream, decltype(&zfp_stream_close)>(zfp_stream_open(nullptr), &zfp_stream_close);
 
-    zfp_field_set_pointer(field.get(), image.data);
+    zfp_field_set_pointer(field.get(), data);
 
     if (compression_precision) {
         zfp_stream_set_precision(zfp.get(), compression_precision);
@@ -426,14 +430,14 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
 
     void *imaginary_data = nullptr;
     int stride = 1;
-    switch (image.head.data_type) {
+    switch (hdr.data_type) {
     case ISMRMRD::ISMRMRD_USHORT: {
         // 16-bit integers are not supported and must be promoted to int32
         type = zfp_type_int32;
 
         // bit-wise or because we only need the MSB, and it is faster than max_element
-        auto maximum = std::accumulate(reinterpret_cast<uint16 *>(image.data),
-                                       reinterpret_cast<uint16 *>(image.data) + ismrmrd_size_of_image_data(&image) / ismrmrd_sizeof_data_type(image.head.data_type),
+        auto maximum = std::accumulate(reinterpret_cast<uint16 *>(data),
+                                       reinterpret_cast<uint16 *>(data) + data_sz / ismrmrd_sizeof_data_type(hdr.data_type),
                                        uint16(0),
                                        [](uint16 const &a, uint16 const &b) { return a | b; });
 
@@ -453,8 +457,8 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
         type = zfp_type_int32;
 
         // bit-wise or because we only need the MSB, and it is faster than max_element
-        auto maximum = std::accumulate(reinterpret_cast<int16 *>(image.data),
-                                       reinterpret_cast<int16 *>(image.data) + ismrmrd_size_of_image_data(&image) / ismrmrd_sizeof_data_type(image.head.data_type),
+        auto maximum = std::accumulate(reinterpret_cast<int16 *>(data),
+                                       reinterpret_cast<int16 *>(data) + data_sz / ismrmrd_sizeof_data_type(hdr.data_type),
                                        uint16(0),
                                        [](uint16 const &a, int16 const &b) { return a | static_cast<uint16>(std::abs(b)); });
 
@@ -472,8 +476,8 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
     case ISMRMRD::ISMRMRD_UINT:
     {
         // bit-wise or because we only need the MSB, and it is faster than max_element
-        auto maximum = std::accumulate(reinterpret_cast<uint32 *>(image.data),
-                                       reinterpret_cast<uint32 *>(image.data) + ismrmrd_size_of_image_data(&image) / ismrmrd_sizeof_data_type(image.head.data_type),
+        auto maximum = std::accumulate(reinterpret_cast<uint32 *>(data),
+                                       reinterpret_cast<uint32 *>(data) + data_sz / ismrmrd_sizeof_data_type(hdr.data_type),
                                        uint32(0),
                                        [](uint32 const &a, uint32 const &b) { return a | b; });
 
@@ -498,8 +502,8 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
     case ISMRMRD::ISMRMRD_INT:
     {
         // Need the actual max_element, not just the MSB
-        auto maximum = *std::max_element(reinterpret_cast<int32 *>(image.data),
-                                         reinterpret_cast<int32 *>(image.data) + ismrmrd_size_of_image_data(&image) / ismrmrd_sizeof_data_type(image.head.data_type),
+        auto maximum = *std::max_element(reinterpret_cast<int32 *>(data),
+                                         reinterpret_cast<int32 *>(data) + data_sz / ismrmrd_sizeof_data_type(hdr.data_type),
                                          [](const int32 &value1, const int32 &value2){ return std::abs(value1) < std::abs(value2); });
 
         // If any |value| >= 2^30 then int64 must be used according to documentation
@@ -531,12 +535,12 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
     case ISMRMRD::ISMRMRD_CXFLOAT:
         type = zfp_type_float;
         stride = 2;
-        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<float *>(image.data) + 1);
+        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<float *>(data) + 1);
         break;
     case ISMRMRD::ISMRMRD_CXDOUBLE:
         type = zfp_type_double;
         stride = 2;
-        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<double *>(image.data) + 1);
+        imaginary_data = reinterpret_cast<void *>(reinterpret_cast<double *>(data) + 1);
         break;
     default:
         throw std::runtime_error("Invalid datatype");
@@ -545,10 +549,10 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
     zfp_field_set_type(field.get(), type);
 
     constexpr uint16_t min_value = 1;
-    size_t nx = std::max(image.head.matrix_size[0], min_value);
-    size_t ny = std::max(image.head.matrix_size[1], min_value);
-    size_t nz = std::max(image.head.matrix_size[2], min_value);
-    size_t nw = std::max(image.head.channels, min_value);
+    size_t nx = std::max(hdr.matrix_size[0], min_value);
+    size_t ny = std::max(hdr.matrix_size[1], min_value);
+    size_t nz = std::max(hdr.matrix_size[2], min_value);
+    size_t nw = std::max(hdr.channels, min_value);
 
     // Collapse image dimensions to make blocks of at least zfp_block_size
     // because images are Fourier transforms so have intrinsic repetition.
@@ -622,6 +626,10 @@ void compress_image(ISMRMRD::ISMRMRD_Image const &image, std::vector<uint8_t> &b
         }
     }
     buffer.resize(zfp_stream_compressed_size(zfp.get()));
+}
+
+void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance) {
+    compress_image_base(image.head,image.data,ISMRMRD::ismrmrd_size_of_image_data(&image),buffer,compression_precision,compression_tolerance);
 }
 
 void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision) {
