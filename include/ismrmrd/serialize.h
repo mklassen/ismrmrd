@@ -266,7 +266,6 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int v
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version, active, precision, tolerance);
 }
 
-
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
@@ -322,7 +321,6 @@ inline void load(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::
 
     load(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), parameters.active);
 }
-
 
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq, const unsigned int version, unsigned int precision, float tolerance) {
