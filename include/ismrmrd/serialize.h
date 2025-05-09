@@ -242,7 +242,7 @@ void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) 
 
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
-          size_t attr_str_sz, const unsigned int version, bool active, unsigned int precision, float tolerance) {
+          size_t attr_str_sz, const unsigned int version, const ISMRMRD::CompressionParameters& params) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
     ar(make_nvp("head", hdr));
@@ -250,10 +250,10 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size
     if (hdr.attribute_string_len > 0)
         ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
 
-    if (active) {
+    if (params.active) {
         std::vector<uint8_t> compressed_data;
 
-        ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, precision, tolerance);
+        ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
         ar(make_nvp("data", compressed_data));
     } else {
         archive_data(ar, hdr.data_type, data, data_sz);
@@ -261,16 +261,17 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version, bool active, unsigned int precision, float tolerance) {
+void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version, const ISMRMRD::CompressionParameters& params) {
     save(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version, active, precision, tolerance);
+         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version, params);
 }
 
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
-    save(ar, image, version, false, 0, 0);
+    ISMRMRD::CompressionParameters params;
+    save(ar, image, version, params);
 }
 
 template <>
@@ -279,7 +280,7 @@ inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::
         throw std::runtime_error("cereal version mismatch");
     auto &parameters = cereal::get_user_data<ISMRMRD::CompressionParameters>(ar);
 
-    save(ar, image, version, parameters.active, parameters.precision, parameters.tolerance);
+    save(ar, image, version, parameters);
 }
 
 template<class Archive>
