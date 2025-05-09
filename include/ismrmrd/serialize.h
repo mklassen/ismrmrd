@@ -40,7 +40,7 @@
 
 // Cereal version requires update if ISMRMRD data structures change
 // Not all ISMRMRD data structures are versioned, so serialization versions must be maintained separately
-#define ISMRMRD_SERIALIZE_VERSION 0
+#define ISMRMRD_SERIALIZE_VERSION 1
 
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialize only supports IEEE 754 standardized floating point");
 
