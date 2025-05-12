@@ -55,14 +55,90 @@ EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_ImageHeader const &hdr, void*
 
 EXPORTISMRMRD void decompress_acquisition_nhlbi(void* data, size_t data_sz, std::vector<uint8_t> &buffer);
 EXPORTISMRMRD void compress_acquisition_nhlbi(void* data, size_t data_sz, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
-enum CompressionMethod {none, zfp, nhlbi};
-struct CompressionParameters {
-    CompressionMethod method = CompressionMethod::none;
-    float tolerance = 0.0;
-    unsigned int precision = 0;
+enum CompressionType : uint8_t {
+   NONE = 0,
+   ZFP = 1,
+   NHLBI = 2
 };
 
-typedef cereal::UserDataAdapter<CompressionParameters, cereal::PortableBinaryOutputArchive> CompressiblePortableBinaryOutputArchive;
+struct CompressionParameters {
+    CompressionType type = CompressionType::NONE;
+    float tolerance = 0.0;
+    unsigned int precision = 0;
+
+    bool active() const{
+        return this->type != CompressionType::NONE;
+    }
+
+    template<class Archive>
+    void save(Archive & archive) const
+    {
+       bool active = this->active();
+       archive(active);
+       if (active) {
+          archive(type);
+          //archive(tolerance);
+          //archive(precision);
+       }
+    }
+
+    template<class Archive>
+    void load(Archive & archive)
+    {
+       bool active;
+       archive(active);
+       if (active) {
+          archive(type);
+          //archive(tolerance);
+          //archive(precision);
+       }
+       else {
+          type = CompressionType::NONE;
+       }
+    }
+};
+
+class CompressiblePortableBinaryOutputArchive : public cereal::PortableBinaryOutputArchive {
+
+public:
+   using cereal::PortableBinaryOutputArchive::PortableBinaryOutputArchive;
+   void setImageCompression(CompressionParameters const &compression) {
+      image = compression;
+      if (image.type == CompressionType::NHLBI)
+        image.type = CompressionType::NONE;
+   }
+   void setAcquisitionCompression(CompressionParameters const &compression) {
+      acquisition = compression;
+   }
+   void setWaveformCompression(CompressionParameters const &compression) {
+      waveform = compression;
+      waveform.type = CompressionType::NONE;
+   }
+   void setNdArrayCompression(CompressionParameters const &compression) {
+      ndArray = compression;
+      ndArray.type = CompressionType::NONE;
+   }
+
+  CompressionParameters& getImageCompression(){
+       return image;
+   }
+  CompressionParameters& getAcquisitionCompression(){
+       return acquisition;
+   }
+  CompressionParameters& getWaveformCompression(){
+       return waveform;
+   }
+  CompressionParameters& getNdArrayCompression(){
+       return ndArray;
+   }
+
+protected:
+   CompressionParameters image;
+   CompressionParameters acquisition;
+   CompressionParameters waveform;
+   CompressionParameters ndArray;
+};
+
 typedef cereal::PortableBinaryInputArchive CompressiblePortableBinaryInputArchive;
 
 class Serialize {
@@ -250,13 +326,15 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size
     if (hdr.attribute_string_len > 0)
         ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
 
-    if (params.method == ISMRMRD::CompressionMethod::zfp) {
+    if (params.type == ISMRMRD::CompressionType::ZFP) {
         std::vector<uint8_t> compressed_data;
 
         ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
         ar(make_nvp("data", compressed_data));
-    } else {
+    } else if (params.type == ISMRMRD::CompressionType::NONE){
         archive_data(ar, hdr.data_type, data, data_sz);
+    } else {
+        throw std::runtime_error("bad compression type");
     }
 }
 
@@ -278,24 +356,27 @@ template <>
 inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
-    auto &parameters = cereal::get_user_data<ISMRMRD::CompressionParameters>(ar);
-
+    auto &parameters = ar.getImageCompression();
+    ar(make_nvp("compression", parameters));
     save(ar, image, version, parameters);
 }
 
 template<class Archive>
-void load(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, void* attribute_string, size_t attr_str_sz, ISMRMRD::CompressionMethod method){
+void load(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, void* attribute_string, size_t attr_str_sz, ISMRMRD::CompressionType compression){
     if (hdr.attribute_string_len > 0)
         ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
 
-    if (method == ISMRMRD::CompressionMethod::zfp) {
+    if (compression == ISMRMRD::CompressionType::ZFP) {
         std::vector<uint8_t> compressed_data;
 
         // Decompress data
         ar(compressed_data);
         ISMRMRD::decompress_image(hdr, data, compressed_data);
-    } else {
+    } else if (compression == ISMRMRD::CompressionType::NONE){
         archive_data(ar, hdr.data_type, data, data_sz);
+    }
+    else{
+        throw std::runtime_error("bad compression type");
     }
 }
 
@@ -307,20 +388,21 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 
     ISMRMRD::ismrmrd_make_consistent_image(&image);
 
-    load(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ISMRMRD::CompressionMethod::none);
+    load(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ISMRMRD::CompressionType::NONE);
 }
 
 template <>
 inline void load(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
+    ISMRMRD::CompressionParameters parameters;
+    ar(make_nvp("compression", parameters));
+
     ar(make_nvp("head", image.head));
 
     ISMRMRD::ismrmrd_make_consistent_image(&image);
 
-    auto &parameters = cereal::get_user_data<ISMRMRD::CompressionParameters>(ar);
-
-    load(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), parameters.method);
+    load(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), parameters.type);
 }
 
 template <class Archive>
@@ -332,11 +414,11 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
     }
 
-    if (params.method == ISMRMRD::CompressionMethod::zfp) {
+    if (params.type == ISMRMRD::CompressionType::ZFP) {
         std::vector<uint8_t> compressed_data;
         ISMRMRD::compress_acquisition(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
         ar(make_nvp("data", compressed_data));
-    } else if (params.method == ISMRMRD::CompressionMethod::nhlbi) {
+    } else if (params.type == ISMRMRD::CompressionType::NHLBI) {
         std::vector<uint8_t> compressed_data;
         ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
         ar(make_nvp("data", compressed_data));
@@ -362,22 +444,23 @@ template <>
 inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
-    auto &parameters = cereal::get_user_data<ISMRMRD::CompressionParameters>(ar);
+    auto &parameters = ar.getAcquisitionCompression();
+    ar(make_nvp("compression", parameters));
     save(ar, acq, version, parameters);
 }
 
 template<class Archive>
-void load(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionMethod method){
+void load(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionType compression){
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
     }
 
-    if (method == ISMRMRD::CompressionMethod::zfp) {
+    if (compression == ISMRMRD::CompressionType::ZFP) {
         std::vector<uint8_t> compressed_data;
         // Decompress data
         ar(compressed_data);
         ISMRMRD::decompress_acquisition(hdr, data, compressed_data);
-    } else if (method == ISMRMRD::CompressionMethod::nhlbi) {
+    } else if (compression == ISMRMRD::CompressionType::NHLBI) {
         std::vector<uint8_t> compressed_data;
         ar(compressed_data);
         ISMRMRD::decompress_acquisition_nhlbi(data, data_sz, compressed_data);
@@ -394,20 +477,21 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int ver
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    load(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), ISMRMRD::CompressionMethod::none);
+    load(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), ISMRMRD::CompressionType::NONE);
 }
 
 template <>
 inline void load(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
         throw std::runtime_error("cereal version mismatch");
+    ISMRMRD::CompressionParameters parameters;
+    ar(make_nvp("compression", parameters));
+
     ar(make_nvp("head", acq.head));
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    auto &parameters = cereal::get_user_data<ISMRMRD::CompressionParameters>(ar);
-
-    load(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), parameters.method);
+    load(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), parameters.type);
 }
 
 template <class Archive>
