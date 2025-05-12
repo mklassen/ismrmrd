@@ -370,7 +370,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t dat
         std::vector<uint8_t> compressed_data;
 
         // Decompress data
-        ar(compressed_data);
+        ar(make_nvp("data",compressed_data));
         ISMRMRD::decompress_image(hdr, data, compressed_data);
     } else if (compression == ISMRMRD::CompressionType::NONE){
         archive_data(ar, hdr.data_type, data, data_sz);
@@ -422,8 +422,11 @@ void save(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data
         std::vector<uint8_t> compressed_data;
         ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
         ar(make_nvp("data", compressed_data));
-    } else {
+    } else if (params.type == ISMRMRD::CompressionType::NONE){
         ar(make_nvp("data", binary_data(data, data_sz)));
+    }
+    else{
+        throw std::runtime_error("bad compression type");
     }
 }
 
@@ -458,14 +461,17 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size
     if (compression == ISMRMRD::CompressionType::ZFP) {
         std::vector<uint8_t> compressed_data;
         // Decompress data
-        ar(compressed_data);
+        ar(make_nvp("data",compressed_data));
         ISMRMRD::decompress_acquisition(hdr, data, compressed_data);
     } else if (compression == ISMRMRD::CompressionType::NHLBI) {
         std::vector<uint8_t> compressed_data;
-        ar(compressed_data);
+        ar(make_nvp("data",compressed_data));
         ISMRMRD::decompress_acquisition_nhlbi(data, data_sz, compressed_data);
-    } else {
-        ar(binary_data(data, data_sz));
+    }else if (compression == ISMRMRD::CompressionType::NONE){
+        ar(make_nvp("data", binary_data(data, data_sz)));
+    }
+    else{
+        throw std::runtime_error("bad compression type");
     }
 }
 
