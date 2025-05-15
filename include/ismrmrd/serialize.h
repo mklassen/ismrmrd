@@ -58,13 +58,13 @@ EXPORTISMRMRD void compress_acquisition_nhlbi(void* data, size_t data_sz, std::v
 
 // kept for backwards compatibility
 EXPORTISMRMRD void decompress_acquisition(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
-EXPORTISMRMRD void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance);
+EXPORTISMRMRD void compress_acquisition(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
 EXPORTISMRMRD void decompress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer);
-EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer, unsigned int compression_precision, float compression_tolerance);
+EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uint8_t> &buffer, unsigned int compression_precision = 0, float compression_tolerance = 0.0);
 
 EXPORTISMRMRD void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
-EXPORTISMRMRD void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance, uint8_t precision);
+EXPORTISMRMRD void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
 
 enum CompressionType : uint8_t {
    NONE = 0,
