@@ -182,7 +182,7 @@ namespace ismrmrd_private {
 
 template <class Archive>
 void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
-          size_t attr_str_sz, const ISMRMRD::CompressionParameters& params) {
+          size_t attr_str_sz, ISMRMRD::CompressionParameters const& params = ISMRMRD::CompressionParameters()) {
     ar(make_nvp("head", hdr));
 
     if (hdr.attribute_string_len > 0)
@@ -230,7 +230,7 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, siz
 }
 
 template <class Archive>
-void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionParameters params) {
+void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionParameters const& params = ISMRMRD::CompressionParameters()) {
     ar(make_nvp("head", hdr));
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
@@ -447,16 +447,14 @@ void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) 
 
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
-    ISMRMRD::CompressionParameters params;
     ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), params);
+         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
 
 template <>
 inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
-    auto &params = ar.getImageCompression();
     ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), params);
+         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ar.getImageCompression());
 }
 
 template <class Archive>
@@ -472,14 +470,13 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 
 template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
-    ISMRMRD::CompressionParameters params;
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), params);
+    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
 template <>
 inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
-    auto &params = ar.getAcquisitionCompression();
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), params);
+    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq),
+                                 ar.getAcquisitionCompression());
 }
 
 template <class Archive>
