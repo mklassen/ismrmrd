@@ -196,11 +196,13 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* dat
     switch (params.type) {
         case ISMRMRD::CompressionType::ZFP:
             {
-            std::vector<uint8_t> compressed_data;
-            ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
-            ar(make_nvp("data", compressed_data));
-            break;
+                std::vector<uint8_t> compressed_data;
+                ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
+                ar(make_nvp("data", compressed_data));
             }
+            break;
+        case ISMRMRD::CompressionType::NHLBI:
+        case ISMRMRD::CompressionType::NONE:
         default:
             archive_data(ar, hdr.data_type, data, data_sz);
     }
@@ -225,6 +227,9 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, siz
                 ar(make_nvp("data",compressed_data));
                 ISMRMRD::decompress_image(hdr, data, compressed_data);
             }
+            break;
+        case ISMRMRD::CompressionType::NHLBI:
+        case ISMRMRD::CompressionType::NONE:
         default:
             archive_data(ar, hdr.data_type, data, data_sz);
     }
@@ -249,12 +254,15 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, voi
                 ISMRMRD::compress_acquisition(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
                 ar(make_nvp("data", compressed_data));
             }
+            break;
         case ISMRMRD::CompressionType::NHLBI:
             {
                 std::vector<uint8_t> compressed_data;
                 ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
                 ar(make_nvp("data", compressed_data));
             }
+            break;
+        case ISMRMRD::CompressionType::NONE:
         default:
             ar(make_nvp("data", binary_data(data, data_sz)));
     }
@@ -280,12 +288,15 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* dat
                 ar(make_nvp("data",compressed_data));
                 ISMRMRD::decompress_acquisition(hdr, data, compressed_data);
             }
+            break;
         case ISMRMRD::CompressionType::NHLBI:
             {
                 std::vector<uint8_t> compressed_data;
                 ar(make_nvp("data",compressed_data));
                 ISMRMRD::decompress_acquisition_nhlbi(data, data_sz, compressed_data);
             }
+            break;
+        case ISMRMRD::CompressionType::NONE:
         default:
             ar(make_nvp("data", binary_data(data, data_sz)));
     }
