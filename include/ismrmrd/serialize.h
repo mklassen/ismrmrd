@@ -134,16 +134,16 @@ public:
       ndArray.type = CompressionType::NONE;
    }
 
-  CompressionParameters& getImageCompression(){
+  CompressionParameters const& getImageCompression(){
        return image;
    }
-  CompressionParameters& getAcquisitionCompression(){
+  CompressionParameters const& getAcquisitionCompression(){
        return acquisition;
    }
-  CompressionParameters& getWaveformCompression(){
+  CompressionParameters const& getWaveformCompression(){
        return waveform;
    }
-  CompressionParameters& getNdArrayCompression(){
+  CompressionParameters const& getNdArrayCompression(){
        return ndArray;
    }
 
