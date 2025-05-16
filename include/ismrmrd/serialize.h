@@ -181,6 +181,38 @@ namespace cereal {
 namespace ismrmrd_private {
 
 template <class Archive>
+void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) {
+    switch (data_type) {
+    case ISMRMRD::ISMRMRD_USHORT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<uint16_t *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_SHORT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<int16_t *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_UINT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<uint32_t *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_INT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<int32_t *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_FLOAT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<float *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_DOUBLE:
+        ar(make_nvp("data", binary_data(reinterpret_cast<double *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_CXFLOAT:
+        ar(make_nvp("data", binary_data(reinterpret_cast<complex_float_t *>(data), datasize)));
+        break;
+    case ISMRMRD::ISMRMRD_CXDOUBLE:
+        ar(make_nvp("data", binary_data(reinterpret_cast<complex_double_t *>(data), datasize)));
+        break;
+    default:
+        throw std::runtime_error("Invalid image data type");
+    }
+}
+
+template <class Archive>
 void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
           size_t attr_str_sz, ISMRMRD::CompressionParameters const& params = ISMRMRD::CompressionParameters()) {
     ar(make_nvp("head", hdr));
@@ -414,38 +446,6 @@ void serialize(Archive &ar, ISMRMRD::WaveformHeader &header, const unsigned int 
 }
 
 template <class Archive>
-void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) {
-    switch (data_type) {
-    case ISMRMRD::ISMRMRD_USHORT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<uint16_t *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_SHORT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<int16_t *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_UINT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<uint32_t *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_INT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<int32_t *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_FLOAT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<float *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_DOUBLE:
-        ar(make_nvp("data", binary_data(reinterpret_cast<double *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_CXFLOAT:
-        ar(make_nvp("data", binary_data(reinterpret_cast<complex_float_t *>(data), datasize)));
-        break;
-    case ISMRMRD::ISMRMRD_CXDOUBLE:
-        ar(make_nvp("data", binary_data(reinterpret_cast<complex_double_t *>(data), datasize)));
-        break;
-    default:
-        throw std::runtime_error("Invalid image data type");
-    }
-}
-
-template <class Archive>
 void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
     ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
@@ -504,7 +504,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_NDArray &ndArray, const unsigned in
         ISMRMRD::ismrmrd_make_consistent_ndarray(&ndArray);
     }
 
-    archive_data(ar, ndArray.data_type, ndArray.data, ISMRMRD::ismrmrd_size_of_ndarray_data(&ndArray));
+    ismrmrd_private::archive_data(ar, ndArray.data_type, ndArray.data, ISMRMRD::ismrmrd_size_of_ndarray_data(&ndArray));
 }
 
 template <class Archive>
