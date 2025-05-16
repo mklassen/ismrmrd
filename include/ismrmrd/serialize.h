@@ -182,10 +182,7 @@ namespace ismrmrd_private {
 
 template <class Archive>
 void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
-          size_t attr_str_sz, const unsigned int version, const ISMRMRD::CompressionParameters& params) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-
+          size_t attr_str_sz, const ISMRMRD::CompressionParameters& params) {
     ar(make_nvp("head", hdr));
 
     if (hdr.attribute_string_len > 0)
@@ -209,10 +206,7 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* dat
 }
 
 template<class Archive>
-void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, void* attribute_string, size_t attr_str_sz, const unsigned int version){
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-
+void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, void* attribute_string, size_t attr_str_sz){
     if (hdr.attribute_string_len > 0)
         ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
 
@@ -236,10 +230,7 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, siz
 }
 
 template <class Archive>
-void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, const unsigned int version, ISMRMRD::CompressionParameters params) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-
+void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionParameters params) {
     ar(make_nvp("head", hdr));
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
@@ -269,10 +260,7 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, voi
 }
 
 template<class Archive>
-void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, const unsigned int version){
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-
+void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz){
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
     }
@@ -458,17 +446,17 @@ void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) 
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version) {
+void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
     ISMRMRD::CompressionParameters params;
     ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version, params);
+         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), params);
 }
 
 template <>
-inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image, const unsigned int version) {
+inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
     auto &params = ar.getImageCompression();
     ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version, params);
+         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), params);
 }
 
 template <class Archive>
@@ -479,19 +467,19 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 
     ISMRMRD::ismrmrd_make_consistent_image(&image);
 
-    ismrmrd_private::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), version);
+    ismrmrd_private::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq, const unsigned int version) {
+void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
     ISMRMRD::CompressionParameters params;
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), version, params);
+    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), params);
 }
 
 template <>
-inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq, const unsigned int version) {
+inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
     auto &params = ar.getAcquisitionCompression();
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), version, params);
+    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), params);
 }
 
 template <class Archive>
@@ -502,7 +490,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int ver
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    ismrmrd_private::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), version);
+    ismrmrd_private::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq));
 }
 
 template <class Archive>
