@@ -487,7 +487,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int ver
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    ismrmrd_private::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq));
+    ismrmrd_private::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
 template <class Archive>
