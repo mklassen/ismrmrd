@@ -108,6 +108,14 @@ struct CompressionParameters {
 class CompressiblePortableBinaryOutputArchive : public cereal::PortableBinaryOutputArchive {
 
 public:
+   CompressiblePortableBinaryOutputArchive(CompressionParameters const & params, std::ostream &ostream)
+   : cereal::PortableBinaryOutputArchive(ostream)
+   , image(params)
+   , acquisition(params)
+   , waveform(params)
+   , ndArray(params)
+   {}
+
    using cereal::PortableBinaryOutputArchive::PortableBinaryOutputArchive;
    void setImageCompression(CompressionParameters const &compression) {
       image = compression;
