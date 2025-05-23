@@ -573,7 +573,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_WaveformHeader &header, const unsig
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
     ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
@@ -596,7 +596,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
     ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
@@ -648,17 +648,17 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_Waveform &waveform, const unsigned 
 }
 
 template <class Archive, typename T>
-void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray) {
+inline void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray) {
     ar(ISMRMRD::Serialize::access(ndArray));
 }
 
 template <class Archive, typename T>
-void serialize(Archive &ar, ISMRMRD::Image<T> &image) {
+inline void serialize(Archive &ar, ISMRMRD::Image<T> &image) {
     ar(ISMRMRD::Serialize::access(image));
 }
 
 template <class Archive>
-void serialize(Archive &ar, ISMRMRD::Acquisition &acq) {
+inline void serialize(Archive &ar, ISMRMRD::Acquisition &acq) {
     ar(ISMRMRD::Serialize::access(acq));
 }
 
