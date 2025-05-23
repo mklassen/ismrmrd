@@ -362,6 +362,42 @@ BOOST_AUTO_TEST_CASE(test_Acquisition_cross_serialize) {
     check_cross2(value1, value2);
 }
 
+BOOST_AUTO_TEST_CASE(test_Waveform_cross_serialize) {
+    ISMRMRD::Waveform value1;
+    ISMRMRD::ISMRMRD_Waveform value2;
+    ISMRMRD::ismrmrd_init_waveform(&value2);
+
+    value1.head.measurement_uid = 5;
+
+    BOOST_CHECK_NE(static_cast<ISMRMRD::ISMRMRD_Waveform>(value1), value2);
+    std::stringstream ss;
+    cereal::ismrmrd::CompressionParameters parameters;
+    {
+        cereal::CompressiblePortableBinaryOutputArchive oarchive(ss);
+        oarchive(value1);
+    }
+    {
+        cereal::CompressiblePortableBinaryInputArchive iarchive(ss);
+        iarchive(value2);
+    }
+    BOOST_CHECK_EQUAL(static_cast<ISMRMRD::ISMRMRD_Waveform>(value1), value2);
+
+
+    value2.head.measurement_uid = 6;
+
+    BOOST_CHECK_NE(static_cast<ISMRMRD::ISMRMRD_Waveform>(value1), value2);
+    ss.str("");
+    {
+        cereal::CompressiblePortableBinaryOutputArchive oarchive(ss);
+        oarchive(value2);
+    }
+    {
+        cereal::CompressiblePortableBinaryInputArchive iarchive(ss);
+        iarchive(value1);
+    }
+    BOOST_CHECK_EQUAL(static_cast<ISMRMRD::ISMRMRD_Waveform>(value1), value2);
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_Image_cross_serialize, T, test_types) {
     ISMRMRD::Image<T> value1(4,4,4,4);
     auto data = value1.getDataPtr();
