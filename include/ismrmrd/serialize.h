@@ -17,15 +17,11 @@
 
 #include <stdexcept>
 
-#define CEREAL_FUTURE_EXPERIMENTAL
-
 #include "ismrmrd.h"
 #include "waveform.h"
 #include "xml.h"
 #include <cereal/cereal.hpp>
-#include <cereal/archives/adapters.hpp>
 #include <cereal/archives/portable_binary.hpp>
-#include <cereal/cereal.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/complex.hpp>
 #include <cereal/types/vector.hpp>
