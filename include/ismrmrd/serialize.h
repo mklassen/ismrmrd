@@ -119,6 +119,8 @@ struct CompressionParameters {
        archive(active);
        if (active) {
           archive(type);
+          // Tolerance and precision are always inherent to compressed data
+          // It is not necessary to explicitly archive them to the stream
        }
     }
 
@@ -135,6 +137,12 @@ struct CompressionParameters {
        }
     }
 };
+
+typedef PortableBinaryInputArchive CompressiblePortableBinaryInputArchive;
+
+// START COPY from cereal portable_binary.hpp
+// Cereal does not allow Archive inheritance, so CompressiblePortableBinaryOutputArchive is predominantly copied from
+// portable_binary.hpp
 
 class CompressiblePortableBinaryOutputArchive : public OutputArchive<CompressiblePortableBinaryOutputArchive, AllowEmptyClassElision>
 {
@@ -212,6 +220,7 @@ private:
     const uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon saving
 
 public:
+    // Customized constructor that takes compression parameters
     CompressiblePortableBinaryOutputArchive(CompressionParameters const & params, std::ostream & stream,
                                             Options const & options = Options::Default()) :
                                                                           OutputArchive<CompressiblePortableBinaryOutputArchive, AllowEmptyClassElision>(this),
@@ -224,6 +233,8 @@ public:
     {
         this->operator()( options.is_little_endian() );
     }
+
+    // START Additions for compression
     void setImageCompression(CompressionParameters const &compression) {
         image = compression;
         if (image.type == CompressionType::NHLBI)
@@ -259,9 +270,8 @@ protected:
     CompressionParameters acquisition;
     CompressionParameters waveform;
     CompressionParameters ndArray;
+    // END Additions for compression
 };
-
-typedef PortableBinaryInputArchive CompressiblePortableBinaryInputArchive;
 
 // ######################################################################
 // Common BinaryArchive serialization functions
@@ -316,6 +326,8 @@ void CEREAL_SAVE_FUNCTION_NAME(CompressiblePortableBinaryOutputArchive & ar, Bin
 
     ar.template saveBinary<sizeof(TT)>( bd.data, static_cast<std::streamsize>( bd.size ) );
 }
+
+// END COPY from cereal portable_binary.hpp
 
 namespace ismrmrd_private {
 
@@ -673,9 +685,11 @@ void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int v
 // register archives for polymorphic support
 CEREAL_REGISTER_ARCHIVE(cereal::CompressiblePortableBinaryOutputArchive)
 
-// the typedef CompressiblePortableBinaryInputArchive has already been associated with PortableBinaryOutputArchive
-// CEREAL_SETUP_ARCHIVE_TRAITS(cereal::CompressiblePortableBinaryInputArchive, cereal::CompressiblePortableBinaryOutputArchive)
-// tie CompressiblePortableBinaryOutputArchive to CompressiblePortableBinaryInputArchive (aka PortableBinaryInputArchive)
+// CEREAL_SETUP_ARCHIVE_TRAITS associates input with output and output with input
+// but CompressiblePortableBinaryInputArchive (aka PortableBinaryInputArchive) has already been associated with PortableBinaryOutputArchive
+// only want to associate CompressiblePortableBinaryOutputArchive to CompressiblePortableBinaryInputArchive (aka PortableBinaryInputArchive)
+// and not vice versa
+//CEREAL_SETUP_ARCHIVE_TRAITS(cereal::CompressiblePortableBinaryInputArchive, cereal::CompressiblePortableBinaryOutputArchive)
 namespace cereal { namespace traits { namespace detail {          \
 template <> struct get_input_from_output<CompressiblePortableBinaryOutputArchive>         \
 { using type = CompressiblePortableBinaryInputArchive; }; } } }
