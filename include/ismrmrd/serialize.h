@@ -647,21 +647,6 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_Waveform &waveform, const unsigned 
     ar(make_nvp("data", binary_data(waveform.data, ISMRMRD::ismrmrd_size_of_waveform_data(&waveform))));
 }
 
-template <class Archive, typename T>
-inline void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray) {
-    ar(ISMRMRD::Serialize::access(ndArray));
-}
-
-template <class Archive, typename T>
-inline void serialize(Archive &ar, ISMRMRD::Image<T> &image) {
-    ar(ISMRMRD::Serialize::access(image));
-}
-
-template <class Archive>
-inline void serialize(Archive &ar, ISMRMRD::Acquisition &acq) {
-    ar(ISMRMRD::Serialize::access(acq));
-}
-
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int version) {
     if (ISMRMRD_SERIALIZE_VERSION != version)
@@ -679,8 +664,25 @@ void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int v
     }
 }
 
-} // namespace cereal
+// Do not version ISMRMRD::Acquisition, ISMRMRD::Image<T>, ISMRMRD::NDArray in order to allow
+// cross serialization and deserialization with their underlying ISMRMRD_XXX structs.
+// Versioning mismatches are caught during the underlying ISMRMRD_XXX deserialization.
+template <class Archive, typename T>
+inline void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray) {
+    ar(ISMRMRD::Serialize::access(ndArray));
+}
 
+template <class Archive, typename T>
+inline void serialize(Archive &ar, ISMRMRD::Image<T> &image) {
+    ar(ISMRMRD::Serialize::access(image));
+}
+
+template <class Archive>
+inline void serialize(Archive &ar, ISMRMRD::Acquisition &acq) {
+    ar(ISMRMRD::Serialize::access(acq));
+}
+
+} // namespace cereal
 
 // register archives for polymorphic support
 CEREAL_REGISTER_ARCHIVE(cereal::CompressiblePortableBinaryOutputArchive)
@@ -704,18 +706,16 @@ CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_Image, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_NDArray, ISMRMRD_SERIALIZE_VERSION);
 
 CEREAL_CLASS_VERSION(ISMRMRD::IsmrmrdHeader, ISMRMRD_SERIALIZE_VERSION);
+
 // These types extend ISMRMRD_XXX structs, adding functions but not data.
-// Therefore, they use their base struct's serialize functions to allow for cross serialization between types.
-// They require the same version as their base structs.
-CEREAL_CLASS_VERSION(ISMRMRD::AcquisitionHeader, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::WaveformHeader, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Waveform, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, ISMRMRD_SERIALIZE_VERSION);
-
-
-// Do not version ISMRMRD::Acquisition, ISMRMRD::Image<T>, ISMRMRD::NDArray in order to allow
-// cross serialization and deserialization with their underlying ISMRMRD_XXX structs.
-// Versioning mismatches are caught during the underlying ISMRMRD_XXX deserialization.
+// There are no serialize methods for the derived class, so they use the serialize methods for the base struct
+// However cereal provides the version value for the derived class and not the base class to the versioned
+// serialize methods. The derived class must therefore set its version to be the same as the base class to
+// allow cross serialization between the base and the derived class.
+CEREAL_CLASS_VERSION(ISMRMRD::WaveformHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_WaveformHeader>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::Waveform, cereal::detail::Version<ISMRMRD::ISMRMRD_Waveform>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::AcquisitionHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_AcquisitionHeader>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_ImageHeader>::version)
 
 #endif
 
