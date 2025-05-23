@@ -8,6 +8,13 @@
  */
 
 #pragma once
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma ide diagnostic ignored "OCUnusedStructInspection"
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+#pragma ide diagnostic ignored "EmptyDeclOrStmt"
+#pragma ide diagnostic ignored "google-explicit-constructor"
+#pragma ide diagnostic ignored "modernize-use-override"
 #ifndef ISMRMRD_SERIALIZE_H
 #define ISMRMRD_SERIALIZE_H
 
@@ -716,3 +723,5 @@ CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, cereal::detail::Version<ISMRMRD::ISMR
 #endif
 
 #endif /*ISMRMRD_SERIALIZE_H*/
+
+#pragma GCC diagnostic pop
