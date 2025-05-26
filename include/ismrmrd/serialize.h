@@ -8,6 +8,13 @@
  */
 
 #pragma once
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma ide diagnostic ignored "OCUnusedStructInspection"
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+#pragma ide diagnostic ignored "EmptyDeclOrStmt"
+#pragma ide diagnostic ignored "google-explicit-constructor"
+#pragma ide diagnostic ignored "modernize-use-override"
 #ifndef ISMRMRD_SERIALIZE_H
 #define ISMRMRD_SERIALIZE_H
 
@@ -17,14 +24,11 @@
 
 #include <stdexcept>
 
-#define CEREAL_FUTURE_EXPERIMENTAL
-
 #include "ismrmrd.h"
 #include "waveform.h"
 #include "xml.h"
-#include <cereal/archives/adapters.hpp>
-#include <cereal/archives/portable_binary.hpp>
 #include <cereal/cereal.hpp>
+#include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/complex.hpp>
 #include <cereal/types/vector.hpp>
@@ -75,96 +79,6 @@ EXPORTISMRMRD void compress_image(ISMRMRD::ISMRMRD_Image &image, std::vector<uin
 EXPORTISMRMRD void decompress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition &acq, std::vector<uint8_t> &buffer);
 EXPORTISMRMRD void compress_acquisition_nhlbi(ISMRMRD::ISMRMRD_Acquisition const &acq, std::vector<uint8_t> &buffer, float tolerance = -1, uint8_t precision = 32);
 
-enum CompressionType : uint8_t {
-   NONE = 0,
-   ZFP = 1,
-   NHLBI = 2
-};
-
-struct CompressionParameters {
-    CompressionType type = CompressionType::NONE;
-    float tolerance = 0.0;
-    unsigned int precision = 0;
-
-    bool active() const{
-        return this->type != CompressionType::NONE;
-    }
-
-    template<class Archive>
-    void save(Archive & archive) const
-    {
-       bool active = this->active();
-       archive(active);
-       if (active) {
-          archive(type);
-       }
-    }
-
-    template<class Archive>
-    void load(Archive & archive)
-    {
-       bool active;
-       archive(active);
-       if (active) {
-          archive(type);
-       }
-       else {
-          type = CompressionType::NONE;
-       }
-    }
-};
-
-class CompressiblePortableBinaryOutputArchive : public cereal::PortableBinaryOutputArchive {
-
-public:
-   CompressiblePortableBinaryOutputArchive(CompressionParameters const & params, std::ostream &ostream)
-   : cereal::PortableBinaryOutputArchive(ostream)
-   , image(params)
-   , acquisition(params)
-   , waveform(params)
-   , ndArray(params)
-   {}
-
-   using cereal::PortableBinaryOutputArchive::PortableBinaryOutputArchive;
-   void setImageCompression(CompressionParameters const &compression) {
-      image = compression;
-      if (image.type == CompressionType::NHLBI)
-        image.type = CompressionType::NONE;
-   }
-   void setAcquisitionCompression(CompressionParameters const &compression) {
-      acquisition = compression;
-   }
-   void setWaveformCompression(CompressionParameters const &compression) {
-      waveform = compression;
-      waveform.type = CompressionType::NONE;
-   }
-   void setNdArrayCompression(CompressionParameters const &compression) {
-      ndArray = compression;
-      ndArray.type = CompressionType::NONE;
-   }
-
-  CompressionParameters const& getImageCompression(){
-       return image;
-   }
-  CompressionParameters const& getAcquisitionCompression(){
-       return acquisition;
-   }
-  CompressionParameters const& getWaveformCompression(){
-       return waveform;
-   }
-  CompressionParameters const& getNdArrayCompression(){
-       return ndArray;
-   }
-
-protected:
-   CompressionParameters image;
-   CompressionParameters acquisition;
-   CompressionParameters waveform;
-   CompressionParameters ndArray;
-};
-
-typedef cereal::PortableBinaryInputArchive CompressiblePortableBinaryInputArchive;
-
 class Serialize {
 public:
     static ISMRMRD::ISMRMRD_Acquisition &access(ISMRMRD::Acquisition &acq) {
@@ -184,10 +98,50 @@ public:
 
 } // namespace ISMRMRD
 
-// External cereal serialization functions
 namespace cereal {
 
-namespace ismrmrd_private {
+namespace ismrmrd {
+
+enum CompressionType : uint8_t {
+    NONE = 0,
+    ZFP = 1,
+    NHLBI = 2
+};
+
+struct CompressionParameters {
+    CompressionType type = CompressionType::NONE;
+    float tolerance = 0.0;
+    unsigned int precision = 0;
+
+    bool active() const{
+        return this->type != CompressionType::NONE;
+    }
+
+    template<class Archive>
+    void save(Archive & archive) const
+    {
+        bool active = this->active();
+        archive(active);
+        if (active) {
+            archive(type);
+            // Tolerance and precision are always inherent to compressed data
+            // It is not necessary to explicitly archive them to the stream
+        }
+    }
+
+    template<class Archive>
+    void load(Archive & archive)
+    {
+        bool active;
+        archive(active);
+        if (active) {
+            archive(type);
+        }
+        else {
+            type = CompressionType::NONE;
+        }
+    }
+};
 
 template <class Archive>
 void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) {
@@ -223,7 +177,7 @@ void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) 
 
 template <class Archive>
 void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
-          size_t attr_str_sz, ISMRMRD::CompressionParameters const& params = ISMRMRD::CompressionParameters()) {
+                 size_t attr_str_sz, CompressionParameters const& params = CompressionParameters()) {
     ar(make_nvp("head", hdr));
 
     if (hdr.attribute_string_len > 0)
@@ -232,17 +186,17 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* dat
     ar(make_nvp("compression", params));
 
     switch (params.type) {
-        case ISMRMRD::CompressionType::ZFP:
-            {
-                std::vector<uint8_t> compressed_data;
-                ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
-                ar(make_nvp("data", compressed_data));
-            }
-            break;
-        case ISMRMRD::CompressionType::NHLBI:
-        case ISMRMRD::CompressionType::NONE:
-        default:
-            archive_data(ar, hdr.data_type, data, data_sz);
+    case CompressionType::ZFP:
+    {
+        std::vector<uint8_t> compressed_data;
+        ISMRMRD::compress_image(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
+        ar(make_nvp("data", compressed_data));
+    }
+    break;
+    case CompressionType::NHLBI:
+    case CompressionType::NONE:
+    default:
+        archive_data(ar, hdr.data_type, data, data_sz);
     }
 }
 
@@ -251,27 +205,27 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, siz
     if (hdr.attribute_string_len > 0)
         ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
 
-    ISMRMRD::CompressionParameters params;
+    CompressionParameters params;
     ar(make_nvp("compression", params));
 
     switch (params.type) {
-        case ISMRMRD::CompressionType::ZFP:
-            {
-                std::vector<uint8_t> compressed_data;
-                // Decompress data
-                ar(make_nvp("data",compressed_data));
-                ISMRMRD::decompress_image(hdr, data, compressed_data);
-            }
-            break;
-        case ISMRMRD::CompressionType::NHLBI:
-        case ISMRMRD::CompressionType::NONE:
-        default:
-            archive_data(ar, hdr.data_type, data, data_sz);
+    case CompressionType::ZFP:
+    {
+        std::vector<uint8_t> compressed_data;
+        // Decompress data
+        ar(make_nvp("data",compressed_data));
+        ISMRMRD::decompress_image(hdr, data, compressed_data);
+    }
+    break;
+    case CompressionType::NHLBI:
+    case CompressionType::NONE:
+    default:
+        archive_data(ar, hdr.data_type, data, data_sz);
     }
 }
 
 template <class Archive>
-void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, ISMRMRD::CompressionParameters const& params = ISMRMRD::CompressionParameters()) {
+void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, CompressionParameters const& params = CompressionParameters()) {
     ar(make_nvp("head", hdr));
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
@@ -280,23 +234,23 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, voi
     ar(make_nvp("compression", params));
 
     switch (params.type) {
-        case ISMRMRD::CompressionType::ZFP:
-            {
-                std::vector<uint8_t> compressed_data;
-                ISMRMRD::compress_acquisition(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
-                ar(make_nvp("data", compressed_data));
-            }
-            break;
-        case ISMRMRD::CompressionType::NHLBI:
-            {
-                std::vector<uint8_t> compressed_data;
-                ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
-                ar(make_nvp("data", compressed_data));
-            }
-            break;
-        case ISMRMRD::CompressionType::NONE:
-        default:
-            ar(make_nvp("data", binary_data(data, data_sz)));
+    case CompressionType::ZFP:
+    {
+        std::vector<uint8_t> compressed_data;
+        ISMRMRD::compress_acquisition(hdr, data, data_sz, compressed_data, params.precision, params.tolerance);
+        ar(make_nvp("data", compressed_data));
+    }
+    break;
+    case CompressionType::NHLBI:
+    {
+        std::vector<uint8_t> compressed_data;
+        ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
+        ar(make_nvp("data", compressed_data));
+    }
+    break;
+    case CompressionType::NONE:
+    default:
+        ar(make_nvp("data", binary_data(data, data_sz)));
     }
 }
 
@@ -306,32 +260,223 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* dat
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
     }
 
-    ISMRMRD::CompressionParameters params;
+    CompressionParameters params;
     ar(make_nvp("compression", params));
 
     switch (params.type) {
-        case ISMRMRD::CompressionType::ZFP:
-            {
-                std::vector<uint8_t> compressed_data;
-                // Decompress data
-                ar(make_nvp("data",compressed_data));
-                ISMRMRD::decompress_acquisition(hdr, data, compressed_data);
-            }
-            break;
-        case ISMRMRD::CompressionType::NHLBI:
-            {
-                std::vector<uint8_t> compressed_data;
-                ar(make_nvp("data",compressed_data));
-                ISMRMRD::decompress_acquisition_nhlbi(data, data_sz, compressed_data);
-            }
-            break;
-        case ISMRMRD::CompressionType::NONE:
-        default:
-            ar(make_nvp("data", binary_data(data, data_sz)));
+    case CompressionType::ZFP:
+    {
+        std::vector<uint8_t> compressed_data;
+        // Decompress data
+        ar(make_nvp("data",compressed_data));
+        ISMRMRD::decompress_acquisition(hdr, data, compressed_data);
+    }
+    break;
+    case CompressionType::NHLBI:
+    {
+        std::vector<uint8_t> compressed_data;
+        ar(make_nvp("data",compressed_data));
+        ISMRMRD::decompress_acquisition_nhlbi(data, data_sz, compressed_data);
+    }
+    break;
+    case CompressionType::NONE:
+    default:
+        ar(make_nvp("data", binary_data(data, data_sz)));
     }
 }
 
-} // namespace ismrmrd_private
+} // namespace ismrmrd
+
+typedef PortableBinaryInputArchive CompressiblePortableBinaryInputArchive;
+
+// START COPY from cereal portable_binary.hpp
+// Cereal does not allow Archive inheritance, so CompressiblePortableBinaryOutputArchive is predominantly copied from
+// portable_binary.hpp
+
+class CompressiblePortableBinaryOutputArchive : public OutputArchive<CompressiblePortableBinaryOutputArchive, AllowEmptyClassElision>
+{
+public:
+    //! A class containing various advanced options for the PortableBinaryOutput archive
+    class Options
+    {
+    public:
+        //! Represents desired endianness
+        enum class Endianness : std::uint8_t
+        { big, little };
+
+        //! Default options, preserve system endianness
+        static Options Default(){ return Options(); }
+
+        //! Save as little endian
+        static Options LittleEndian(){ return Options( Endianness::little ); }
+
+        //! Save as big endian
+        static Options BigEndian(){ return Options( Endianness::big ); }
+
+        //! Specify specific options for the PortableBinaryOutputArchive
+        /*! @param outputEndian The desired endianness of saved (output) data */
+        explicit Options( Endianness outputEndian = getEndianness() ) :
+                                                                      itsOutputEndianness( outputEndian ) { }
+
+    private:
+        //! Gets the endianness of the system
+        inline static Endianness getEndianness()
+        { return portable_binary_detail::is_little_endian() ? Endianness::little : Endianness::big; }
+
+        //! Checks if Options is set for little endian
+        inline std::uint8_t is_little_endian() const
+        { return itsOutputEndianness == Endianness::little; }
+
+        friend class CompressiblePortableBinaryOutputArchive;
+        Endianness itsOutputEndianness;
+    };
+
+    //! Construct, outputting to the provided stream
+    /*! @param stream The stream to output to. Should be opened with std::ios::binary flag.
+        @param options The PortableBinary specific options to use.  See the Options struct
+                       for the values of default parameters */
+    CompressiblePortableBinaryOutputArchive(std::ostream & stream, Options const & options = Options::Default()) :
+                                                                                                                 OutputArchive<CompressiblePortableBinaryOutputArchive, AllowEmptyClassElision>(this),
+                                                                                                                 itsStream(stream),
+                                                                                                                 itsConvertEndianness( portable_binary_detail::is_little_endian() ^ options.is_little_endian() )
+    {
+        this->operator()( options.is_little_endian() );
+    }
+
+    ~CompressiblePortableBinaryOutputArchive() CEREAL_NOEXCEPT = default;
+
+    //! Writes size bytes of data to the output stream
+    template <std::streamsize DataSize> inline
+        void saveBinary( const void * data, std::streamsize size )
+    {
+        std::streamsize writtenSize = 0;
+
+        if( itsConvertEndianness )
+        {
+            for( std::streamsize i = 0; i < size; i += DataSize )
+                for( std::streamsize j = 0; j < DataSize; ++j )
+                    writtenSize += itsStream.rdbuf()->sputn( reinterpret_cast<const char*>( data ) + DataSize - j - 1 + i, 1 );
+        }
+        else
+            writtenSize = itsStream.rdbuf()->sputn( reinterpret_cast<const char*>( data ), size );
+
+        if(writtenSize != size)
+            throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
+    }
+
+private:
+    std::ostream & itsStream;
+    const uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon saving
+
+public:
+    // Customized constructor that takes compression parameters
+    CompressiblePortableBinaryOutputArchive(ismrmrd::CompressionParameters const & params, std::ostream & stream,
+                                            Options const & options = Options::Default()) :
+                                                                          OutputArchive<CompressiblePortableBinaryOutputArchive, AllowEmptyClassElision>(this),
+                                                                          itsStream(stream),
+                                                                          itsConvertEndianness( portable_binary_detail::is_little_endian() ^ options.is_little_endian() ),
+                                                                          image(params),
+                                                                          acquisition(params),
+                                                                          waveform(params),
+                                                                          ndArray(params)
+    {
+        this->operator()( options.is_little_endian() );
+    }
+
+    // START Additions for compression
+    void setImageCompression(ismrmrd::CompressionParameters const &compression) {
+        image = compression;
+        if (image.type == ismrmrd::CompressionType::NHLBI)
+            image.type = ismrmrd::CompressionType::NONE;
+    }
+    void setAcquisitionCompression(ismrmrd::CompressionParameters const &compression) {
+        acquisition = compression;
+    }
+    void setWaveformCompression(ismrmrd::CompressionParameters const &compression) {
+        waveform = compression;
+        waveform.type = ismrmrd::CompressionType::NONE;
+    }
+    void setNdArrayCompression(ismrmrd::CompressionParameters const &compression) {
+        ndArray = compression;
+        ndArray.type = ismrmrd::CompressionType::NONE;
+    }
+
+    ismrmrd::CompressionParameters const& getImageCompression() const{
+        return image;
+    }
+    ismrmrd::CompressionParameters const& getAcquisitionCompression() const{
+        return acquisition;
+    }
+    ismrmrd::CompressionParameters const& getWaveformCompression() const{
+        return waveform;
+    }
+    ismrmrd::CompressionParameters const& getNdArrayCompression() const{
+        return ndArray;
+    }
+
+protected:
+    ismrmrd::CompressionParameters image;
+    ismrmrd::CompressionParameters acquisition;
+    ismrmrd::CompressionParameters waveform;
+    ismrmrd::CompressionParameters ndArray;
+    // END Additions for compression
+};
+
+// ######################################################################
+// Common BinaryArchive serialization functions
+
+//! Saving for POD types to portable binary
+template<class T> inline
+    typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+    CEREAL_SAVE_FUNCTION_NAME(CompressiblePortableBinaryOutputArchive & ar, T const & t)
+{
+    static_assert( !std::is_floating_point<T>::value ||
+                      (std::is_floating_point<T>::value && std::numeric_limits<T>::is_iec559),
+                  "Portable binary only supports IEEE 754 standardized floating point" );
+    ar.template saveBinary<sizeof(T)>(std::addressof(t), sizeof(t));
+}
+
+//! Serializing NVP types to portable binary
+/*
+ * serialize function for typedef CompressiblePortableBinaryOutputArchive has already been created
+ * only need to do half the work of this macro
+template <class Archive, class T> inline
+CEREAL_ARCHIVE_RESTRICT(CompressiblePortableBinaryInputArchive, CompressiblePortableBinaryOutputArchive)
+CEREAL_SERIALIZE_FUNCTION_NAME( Archive & ar, NameValuePair<T> & t )
+*/
+template <class T> inline
+void CEREAL_SAVE_FUNCTION_NAME( CompressiblePortableBinaryOutputArchive & ar, const NameValuePair<T> & t )
+{
+    ar( t.value );
+}
+
+//! Serializing SizeTags to portable binary
+/*
+ * serialize function for typedef CompressiblePortableBinaryOutputArchive has already been created
+ * only need to do half the work of this macro
+template <class Archive, class T> inline
+CEREAL_ARCHIVE_RESTRICT(CompressiblePortableBinaryInputArchive, CompressiblePortableBinaryOutputArchive)
+CEREAL_SERIALIZE_FUNCTION_NAME( Archive & ar, SizeTag<T> & t )
+*/
+template <class T> inline
+    void CEREAL_SAVE_FUNCTION_NAME( CompressiblePortableBinaryOutputArchive & ar, const SizeTag<T> & t )
+{
+    ar( t.size );
+}
+
+//! Saving binary data to portable binary
+template <class T> inline
+void CEREAL_SAVE_FUNCTION_NAME(CompressiblePortableBinaryOutputArchive & ar, BinaryData<T> const & bd)
+{
+    typedef typename std::remove_pointer<T>::type TT;
+    static_assert( !std::is_floating_point<TT>::value ||
+                      (std::is_floating_point<TT>::value && std::numeric_limits<TT>::is_iec559),
+                  "Portable binary only supports IEEE 754 standardized floating point" );
+
+    ar.template saveBinary<sizeof(TT)>( bd.data, static_cast<std::streamsize>( bd.size ) );
+}
+
+// END COPY from cereal portable_binary.hpp
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_EncodingCounters &counter, const unsigned int version) {
@@ -431,38 +576,14 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_WaveformHeader &header, const unsig
 }
 
 template <class Archive>
-void serialize(Archive &ar, ISMRMRD::AcquisitionHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    // All data is in the base class
-    ar(cereal::base_class<ISMRMRD::ISMRMRD_AcquisitionHeader>(&header));
-}
-
-template <class Archive>
-void serialize(Archive &ar, ISMRMRD::ImageHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    // All data is in the base class
-    ar(cereal::base_class<ISMRMRD::ISMRMRD_ImageHeader>(&header));
-}
-
-template <class Archive>
-void serialize(Archive &ar, ISMRMRD::WaveformHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    // All data is in the base class
-    ar(cereal::base_class<ISMRMRD::ISMRMRD_WaveformHeader>(&header));
-}
-
-template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
-    ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
+    ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
 
 template <>
-inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
-    ismrmrd_private::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
+inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
+    ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ar.getImageCompression());
 }
 
@@ -474,17 +595,17 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 
     ISMRMRD::ismrmrd_make_consistent_image(&image);
 
-    ismrmrd_private::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
+    ismrmrd::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
 
 template <class Archive>
-void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
+    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
 template <>
-inline void save(ISMRMRD::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
-    ismrmrd_private::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq),
+inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
+    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq),
                                  ar.getAcquisitionCompression());
 }
 
@@ -496,7 +617,7 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int ver
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    ismrmrd_private::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
+    ismrmrd::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
 template <class Archive>
@@ -513,7 +634,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_NDArray &ndArray, const unsigned in
         ISMRMRD::ismrmrd_make_consistent_ndarray(&ndArray);
     }
 
-    ismrmrd_private::archive_data(ar, ndArray.data_type, ndArray.data, ISMRMRD::ismrmrd_size_of_ndarray_data(&ndArray));
+    ismrmrd::archive_data(ar, ndArray.data_type, ndArray.data, ISMRMRD::ismrmrd_size_of_ndarray_data(&ndArray));
 }
 
 template <class Archive>
@@ -527,27 +648,6 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_Waveform &waveform, const unsigned 
     }
 
     ar(make_nvp("data", binary_data(waveform.data, ISMRMRD::ismrmrd_size_of_waveform_data(&waveform))));
-}
-
-template <class Archive, typename T>
-void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    ar(ISMRMRD::Serialize::access(ndArray));
-}
-
-template <class Archive, typename T>
-void serialize(Archive &ar, ISMRMRD::Image<T> &image, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    ar(ISMRMRD::Serialize::access(image));
-}
-
-template <class Archive>
-void serialize(Archive &ar, ISMRMRD::Acquisition &acq, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
-        throw std::runtime_error("cereal version mismatch");
-    ar(ISMRMRD::Serialize::access(acq));
 }
 
 template <class Archive>
@@ -567,7 +667,37 @@ void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int v
     }
 }
 
+// Do not version ISMRMRD::Acquisition, ISMRMRD::Image<T>, ISMRMRD::NDArray in order to allow
+// cross serialization and deserialization with their underlying ISMRMRD_XXX structs.
+// Versioning mismatches are caught during the underlying ISMRMRD_XXX deserialization.
+template <class Archive, typename T>
+inline void serialize(Archive &ar, ISMRMRD::NDArray<T> &ndArray) {
+    ar(ISMRMRD::Serialize::access(ndArray));
+}
+
+template <class Archive, typename T>
+inline void serialize(Archive &ar, ISMRMRD::Image<T> &image) {
+    ar(ISMRMRD::Serialize::access(image));
+}
+
+template <class Archive>
+inline void serialize(Archive &ar, ISMRMRD::Acquisition &acq) {
+    ar(ISMRMRD::Serialize::access(acq));
+}
+
 } // namespace cereal
+
+// register archives for polymorphic support
+CEREAL_REGISTER_ARCHIVE(cereal::CompressiblePortableBinaryOutputArchive)
+
+// CEREAL_SETUP_ARCHIVE_TRAITS associates input with output and output with input
+// but CompressiblePortableBinaryInputArchive (aka PortableBinaryInputArchive) has already been associated with PortableBinaryOutputArchive
+// only want to associate CompressiblePortableBinaryOutputArchive to CompressiblePortableBinaryInputArchive (aka PortableBinaryInputArchive)
+// and not vice versa
+//CEREAL_SETUP_ARCHIVE_TRAITS(cereal::CompressiblePortableBinaryInputArchive, cereal::CompressiblePortableBinaryOutputArchive)
+namespace cereal { namespace traits { namespace detail {          \
+template <> struct get_input_from_output<CompressiblePortableBinaryOutputArchive>         \
+{ using type = CompressiblePortableBinaryInputArchive; }; } } }
 
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_EncodingCounters, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_AcquisitionHeader, ISMRMRD_SERIALIZE_VERSION);
@@ -578,32 +708,20 @@ CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_Waveform, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_Image, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::ISMRMRD_NDArray, ISMRMRD_SERIALIZE_VERSION);
 
-CEREAL_CLASS_VERSION(ISMRMRD::AcquisitionHeader, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::WaveformHeader, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, ISMRMRD_SERIALIZE_VERSION);
 CEREAL_CLASS_VERSION(ISMRMRD::IsmrmrdHeader, ISMRMRD_SERIALIZE_VERSION);
 
-CEREAL_CLASS_VERSION(ISMRMRD::Acquisition, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Waveform, ISMRMRD_SERIALIZE_VERSION);
-
-CEREAL_CLASS_VERSION(ISMRMRD::Image<uint16_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<int16_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<uint32_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<int32_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<float>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<double>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<complex_float_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::Image<complex_double_t>, ISMRMRD_SERIALIZE_VERSION);
-
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<uint16_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<int16_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<uint32_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<int32_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<float>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<double>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<complex_float_t>, ISMRMRD_SERIALIZE_VERSION);
-CEREAL_CLASS_VERSION(ISMRMRD::NDArray<complex_double_t>, ISMRMRD_SERIALIZE_VERSION);
+// These types extend ISMRMRD_XXX structs, adding functions but not data.
+// There are no serialize methods for the derived class, so they use the serialize methods for the base struct
+// However cereal provides the version value for the derived class and not the base class to the versioned
+// serialize methods. The derived class must therefore set its version to be the same as the base class to
+// allow cross serialization between the base and the derived class.
+CEREAL_CLASS_VERSION(ISMRMRD::WaveformHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_WaveformHeader>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::Waveform, cereal::detail::Version<ISMRMRD::ISMRMRD_Waveform>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::AcquisitionHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_AcquisitionHeader>::version)
+CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, cereal::detail::Version<ISMRMRD::ISMRMRD_ImageHeader>::version)
 
 #endif
 
 #endif /*ISMRMRD_SERIALIZE_H*/
+
+#pragma GCC diagnostic pop
