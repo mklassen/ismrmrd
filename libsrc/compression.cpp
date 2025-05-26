@@ -186,6 +186,14 @@ size_t ismrmrd_size_of_acquisition_traj(const ISMRMRD::ISMRMRD_AcquisitionHeader
     return ismrmrd_num_of_acquisition_traj(hdr) * sizeof(float);
 }
 
+size_t ismrmrd_num_of_waveform_data(const ISMRMRD::ISMRMRD_WaveformHeader& hdr) {
+    return hdr.channels * hdr.number_of_samples;
+}
+
+size_t ismrmrd_size_of_waveform_data(const ISMRMRD::ISMRMRD_WaveformHeader& hdr) {
+    return ismrmrd_num_of_waveform_data(hdr) * sizeof(uint32_t);
+}
+
 void decompress_acquisition(ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, std::vector<uint8_t> &buffer){
     auto field = std::unique_ptr<zfp_field, decltype(&zfp_field_free)>(zfp_field_alloc(), &zfp_field_free);
 
