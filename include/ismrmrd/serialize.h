@@ -8,15 +8,23 @@
  */
 
 #pragma once
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#if defined(__clang__)
 #pragma ide diagnostic ignored "OCUnusedStructInspection"
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "EmptyDeclOrStmt"
 #pragma ide diagnostic ignored "google-explicit-constructor"
 #pragma ide diagnostic ignored "modernize-use-override"
+#endif
 #ifndef ISMRMRD_SERIALIZE_H
 #define ISMRMRD_SERIALIZE_H
+
+
+#if defined(_MSC_VER)
+#define UNUSED
+#else
+#define UNUSED __attribute__((unused))
+#endif
+
 
 #include "ismrmrd/version.h"
 
@@ -578,13 +586,13 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_WaveformHeader &header, const unsig
 }
 
 template <class Archive>
-inline void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  UNUSED const unsigned int version) {
     ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
 }
 
 template <>
-inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  __attribute__((unused)) const unsigned int version) {
+inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  UNUSED const unsigned int version) {
     ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
          ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ar.getImageCompression());
 }
@@ -601,12 +609,12 @@ void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version
 }
 
 template <class Archive>
-inline void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
+inline void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  UNUSED const unsigned int version) {
     ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
 }
 
 template <>
-inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  __attribute__((unused)) const unsigned int version) {
+inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  UNUSED const unsigned int version) {
     ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq),
                                  ar.getAcquisitionCompression());
 }
@@ -725,5 +733,3 @@ CEREAL_CLASS_VERSION(ISMRMRD::ImageHeader, cereal::detail::Version<ISMRMRD::ISMR
 #endif
 
 #endif /*ISMRMRD_SERIALIZE_H*/
-
-#pragma GCC diagnostic pop
