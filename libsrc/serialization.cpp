@@ -6,11 +6,38 @@
 
 namespace ISMRMRD {
 
+void serialize(const AttributeStringHandler* obj, WritableStreamView &ws) {
+    uint64_t attr_length = obj->getAttributeStringLength();
+    ws.write(reinterpret_cast<char *>(&attr_length), sizeof(uint64_t));
+    if (attr_length) {
+        ws.write(obj->getAttributeString(), static_cast<size_t>(attr_length));
+    }
+}
+
+void deserialize(AttributeStringHandler* obj, ReadableStreamView &rs) {
+    uint64_t attr_length;
+    rs.read(reinterpret_cast<char *>(&attr_length), sizeof(uint64_t));
+
+    if (attr_length) {
+        if (attr_length >= std::numeric_limits<std::vector<char>::size_type>::max()) {
+            throw std::runtime_error("Attribute string is too large");
+        }
+
+        auto strSize = static_cast<std::vector<char>::size_type>(attr_length);
+        std::vector<char> attr(strSize + 1);
+        rs.read(&attr[0], strSize);
+        attr[strSize] = '\0';
+
+        obj->setAttributeString(&attr[0]);
+    }
+}
+
 void serialize(const Acquisition &acq, WritableStreamView &ws) {
     AcquisitionHeader ahead = acq.getHead();
     ws.write(reinterpret_cast<const char *>(&ahead), sizeof(AcquisitionHeader));
     ws.write(reinterpret_cast<const char *>(acq.getTrajPtr()), ahead.trajectory_dimensions * ahead.number_of_samples * sizeof(float));
     ws.write(reinterpret_cast<const char *>(acq.getDataPtr()), ahead.number_of_samples * ahead.active_channels * 2 * sizeof(float));
+    serialize(static_cast<const AttributeStringHandler*>(&acq), ws);
     if (ws.bad()) {
         throw std::runtime_error("Error writing acquisition to stream");
     }
@@ -23,11 +50,7 @@ void serialize(const Image<T> &img, WritableStreamView &ws) {
         throw std::runtime_error("Image data type does not match template type");
     }
     ws.write(reinterpret_cast<const char *>(&ihead), sizeof(ImageHeader));
-    uint64_t attr_length = img.getAttributeStringLength();
-    ws.write(reinterpret_cast<char *>(&attr_length), sizeof(uint64_t));
-    if (attr_length) {
-        ws.write(img.getAttributeString(), ihead.attribute_string_len);
-    }
+    serialize(static_cast<const AttributeStringHandler*>(&img), ws);
     ws.write(reinterpret_cast<const char *>(img.getDataPtr()), img.getDataSize());
     if (ws.bad()) {
         throw std::runtime_error("Error writing image to stream");
@@ -82,6 +105,7 @@ void deserialize(Acquisition &acq, ReadableStreamView &rs) {
     acq.setHead(ahead);
     rs.read(reinterpret_cast<char *>(acq.getTrajPtr()), ahead.trajectory_dimensions * ahead.number_of_samples * sizeof(float));
     rs.read(reinterpret_cast<char *>(acq.getDataPtr()), ahead.number_of_samples * ahead.active_channels * 2 * sizeof(float));
+    deserialize(static_cast<AttributeStringHandler*>(&acq), rs);
     if (rs.eof()) {
         throw std::runtime_error("Error reading acquisition");
     }
@@ -90,19 +114,7 @@ void deserialize(Acquisition &acq, ReadableStreamView &rs) {
 // Helper function that deserializes attributes and pixels
 template <typename T>
 void deserialize_attr_and_pixels(Image<T> &img, ReadableStreamView &rs) {
-    uint64_t attr_length;
-    rs.read(reinterpret_cast<char *>(&attr_length), sizeof(uint64_t));
-    if (attr_length) {
-        if (attr_length >= std::numeric_limits<std::vector<char>::size_type>::max())
-        {
-            throw std::runtime_error("Attribute string is too large");
-        }
-        auto strSize = static_cast<std::vector<char>::size_type>(attr_length);
-        std::vector<char> attr(strSize + 1);
-        rs.read(&attr[0], strSize);
-        attr[strSize] = '\0';
-        img.setAttributeString(&attr[0]);
-    }
+    deserialize(static_cast<AttributeStringHandler*>(&img), rs);
     rs.read(reinterpret_cast<char *>(img.getDataPtr()), img.getDataSize());
     if (rs.eof()) {
         throw std::runtime_error("Error reading image");

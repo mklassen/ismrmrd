@@ -112,6 +112,72 @@ bool operator==(ISMRMRD_NDArray const &left, ISMRMRD_NDArray const &right)
 }
 
 //
+// AttributeStringHandler class implementation
+//
+AttributeStringHandler::AttributeStringHandler(char **attr_str, uint32_t *attr_len)
+        : attribute_string_(attr_str), attribute_string_len_(attr_len) {}
+
+void AttributeStringHandler::bind(char **attr_str, uint32_t *attr_len) {
+    attribute_string_ = attr_str;
+    attribute_string_len_ = attr_len;
+}
+
+void AttributeStringHandler::getAttributeString(std::string &attr) const {
+    if (!attribute_string_) {
+        throw std::runtime_error("AttributeStringHandler not bound to valid memory.");
+    }
+
+    if (*attribute_string_)
+        attr.assign(*attribute_string_);
+    else
+        attr.assign("");
+}
+
+const char *AttributeStringHandler::getAttributeString() const {
+    if (!attribute_string_) {
+        throw std::runtime_error("AttributeStringHandler not bound to valid memory.");
+    }
+
+    return *attribute_string_;
+}
+
+void AttributeStringHandler::setAttributeString(const std::string &attr) {
+    setAttributeString(attr.c_str());
+}
+
+void AttributeStringHandler::setAttributeString(const char *attr) {
+    if (!attribute_string_ || !attribute_string_len_) {
+        throw std::runtime_error("AttributeStringHandler not bound to valid memory.");
+    }
+
+    // Get the string length
+    size_t length = strlen(attr);
+
+    // Allocate space plus a null terminator and check for success
+    char *newPointer = (char *)realloc(*attribute_string_, (length+1) * sizeof(**attribute_string_));
+    if (NULL==newPointer) {
+        throw std::runtime_error(build_exception_string());
+    }
+
+    // Make changes only if reallocation was successful
+    *attribute_string_ = newPointer;
+    *attribute_string_len_ = static_cast<uint32_t>(length);
+
+    // Set the null terminator and copy the string
+    (*attribute_string_)[length] = '\0';
+    strncpy(*attribute_string_, attr, length+1);
+}
+
+size_t AttributeStringHandler::getAttributeStringLength() const {
+    if (!attribute_string_len_) {
+        throw std::runtime_error("AttributeStringHandler not bound to valid memory.");
+    }
+
+    return *attribute_string_len_;
+}
+;
+
+//
 // AcquisitionHeader class implementation
 //
 // Constructors
@@ -188,6 +254,7 @@ Acquisition::Acquisition() {
     if (ismrmrd_init_acquisition(&acq) != ISMRMRD_NOERROR) {
         throw std::runtime_error(build_exception_string());
     }
+    AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
 }
 
 Acquisition::Acquisition(uint16_t num_samples, uint16_t active_channels, uint16_t trajectory_dimensions){
@@ -195,6 +262,7 @@ Acquisition::Acquisition(uint16_t num_samples, uint16_t active_channels, uint16_
         throw std::runtime_error(build_exception_string());
     }
     this->resize(num_samples,active_channels,trajectory_dimensions);
+    AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
 }
 
 Acquisition::Acquisition(const Acquisition &other) {
@@ -208,19 +276,25 @@ Acquisition::Acquisition(const Acquisition &other) {
     if (err) {
         throw std::runtime_error(build_exception_string());
     }
+    AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
 }
 
 #if !ISMRMRD_CPP03_SUPPORT
-Acquisition::Acquisition(std::unique_ptr<ISMRMRD_Acquisition> pacq) : acq(*pacq) {}
+Acquisition::Acquisition(std::unique_ptr<ISMRMRD_Acquisition> pacq) : acq(*pacq) {
+    AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
+}
 
 Acquisition::Acquisition(Acquisition &&other) : acq(other.acq){
    other.acq.data = NULL;
    other.acq.traj = NULL;
+   other.acq.attribute_string = NULL;
+   AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
 }
 
 Acquisition & Acquisition::operator= (Acquisition &&other){
    ismrmrd_cleanup_acquisition(&acq);
    acq = other.acq;
+   AttributeStringHandler::bind(&acq.attribute_string, &acq.head.attribute_string_len);
    other.acq.data = NULL;
    other.acq.traj = NULL;
    return *this;
@@ -616,6 +690,7 @@ template <typename T> Image<T>::Image(uint16_t matrix_size_x,
     }
     im.head.data_type = static_cast<uint16_t>(get_data_type<T>());
     resize(matrix_size_x, matrix_size_y, matrix_size_z, channels);
+    AttributeStringHandler::bind(&im.attribute_string, &im.head.attribute_string_len);
 }
 
 template <typename T> Image<T>::Image(const Image<T> &other) {
@@ -629,20 +704,25 @@ template <typename T> Image<T>::Image(const Image<T> &other) {
     if (err) {
         throw std::runtime_error(build_exception_string());
     }
+    AttributeStringHandler::bind(&im.attribute_string, &im.head.attribute_string_len);
 }
 
 #if !ISMRMRD_CPP03_SUPPORT
-template <typename T> Image<T>::Image(std::unique_ptr<ISMRMRD_Image> pim) : im(*pim) {}
+template <typename T> Image<T>::Image(std::unique_ptr<ISMRMRD_Image> pim) : im(*pim) {
+    AttributeStringHandler::bind(&im.attribute_string, &im.head.attribute_string_len);
+}
 
 template <typename T> Image<T>::Image(Image &&other) : im(other.im){
    other.im.data = NULL;
    other.im.attribute_string = NULL;
    other.im.head.attribute_string_len = 0;
+   AttributeStringHandler::bind(&im.attribute_string, &im.head.attribute_string_len);
 }
 
 template <typename T> Image<T> & Image<T>::operator= (Image &&other){
    ismrmrd_cleanup_image(&im);
    im = other.im;
+   AttributeStringHandler::bind(&im.attribute_string, &im.head.attribute_string_len);
    other.im.data = NULL;
    other.im.attribute_string = NULL;
    other.im.head.attribute_string_len = 0;
@@ -1193,50 +1273,6 @@ template <typename T> void Image<T>::setHead(const ImageHeader &other) {
     if (ismrmrd_make_consistent_image(&im) != ISMRMRD_NOERROR) {
         throw std::runtime_error(build_exception_string());
     }
-}
-
-// Attribute string
-template <typename T> void Image<T>::getAttributeString(std::string &attr) const
-{
-   if (im.attribute_string)
-      attr.assign(im.attribute_string);
-   else
-      attr.assign("");
-}
-
-template <typename T> const char *Image<T>::getAttributeString() const
-{
-   return im.attribute_string;
-}
-
-template <typename T> void Image<T>::setAttributeString(const std::string &attr)
-{
-    this->setAttributeString(attr.c_str());
-}
-
-template <typename T> void Image<T>::setAttributeString(const char *attr)
-{
-    // Get the string length
-    size_t length = strlen(attr);
-
-    // Allocate space plus a null terminator and check for success
-    char *newPointer = (char *)realloc(im.attribute_string, (length+1) * sizeof(*im.attribute_string));
-    if (NULL==newPointer) {
-        throw std::runtime_error(build_exception_string());
-    }
-
-    // Make changes only if reallocation was successful
-    im.attribute_string = newPointer;
-    im.head.attribute_string_len = static_cast<uint32_t>(length);
-
-    // Set the null terminator and copy the string
-    im.attribute_string[length] = '\0';
-    strncpy(im.attribute_string, attr, length+1);
-}
-
-template <typename T> size_t Image<T>::getAttributeStringLength() const
-{
-    return im.head.attribute_string_len;
 }
 
 // Data

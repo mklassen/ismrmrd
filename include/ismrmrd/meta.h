@@ -124,9 +124,9 @@ namespace ISMRMRD {
 
         void set(const char *s) {
             s_ = std::string(s);
-            auto result = sscanf(s_.c_str(), "%lf", &d_);
-            if (result)
-                l_ = static_cast<long>(d_);
+            d_ = 0;
+            sscanf(s_.c_str(), "%lf", &d_);
+            l_ = static_cast<long>(d_);
         }
 
         void set(long l) {
@@ -162,8 +162,8 @@ namespace ISMRMRD {
                 }
 
                 // If decimal point is now the last character, remove it (doesn't affect 'trimmed')
-                if (!mantissa.empty() && mantissa.back() == '.') {
-                    mantissa.pop_back();
+                if (!mantissa.empty() && mantissa[mantissa.size() - 1] == '.') {
+                    mantissa.erase(mantissa.size() - 1);
                 }
             }
 
@@ -173,7 +173,7 @@ namespace ISMRMRD {
 
         void stripZeroExponent(std::string& scientificVal) {
             size_t ePos = scientificVal.find_first_of("eE");
-            if (ePos != std::string::npos && std::stoi(scientificVal.substr(ePos+2)) == 0)
+            if (ePos != std::string::npos && std::atoi(scientificVal.substr(ePos+2).c_str()) == 0)
                 scientificVal.erase(ePos);
         }
 
@@ -191,10 +191,15 @@ namespace ISMRMRD {
             strstream << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
             strstream << d_;
             s_ =  strstream.str();
-            auto nStripped = stripTrailingZeros(s_);
+            size_t nStripped = stripTrailingZeros(s_);
             if (nStripped < 2 ) {
                 strstream.str("");
-                strstream << std::scientific << std::setprecision(std::numeric_limits<double>::max_digits10);
+                strstream << std::scientific;
+#ifdef ISMRMRD_CPP03_SUPPORT
+                strstream << std::setprecision(17);
+#else
+                strstream << std::setprecision(std::numeric_limits<double>::max_digits10);
+#endif
                 strstream << d_;
                 strstream >> s_;
             }

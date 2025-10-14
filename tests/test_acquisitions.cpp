@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_CASE(test_acquisition_header)
 
     // Check that header is of expected size
     size_t expected_size = 9 * sizeof(uint16_t) +
-            (3 + ISMRMRD_PHYS_STAMPS) * sizeof(uint32_t) +
+            (4 + ISMRMRD_PHYS_STAMPS) * sizeof(uint32_t) +
             ISMRMRD_USER_INTS * sizeof(int32_t) +
             (1 + ISMRMRD_CHANNEL_MASKS) * sizeof(uint64_t) +
             ((2 * ISMRMRD_POSITION_LENGTH) + (3 * ISMRMRD_DIRECTION_LENGTH) +

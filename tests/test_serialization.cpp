@@ -32,39 +32,6 @@ std::complex<float> value_from_size_t<std::complex<float> >(size_t i) { return s
 template <>
 std::complex<double> value_from_size_t<std::complex<double> >(size_t i) { return std::complex<double>(1.0f * i, 1.0f * i); }
 
-// Test the serialization of a single acquisition
-BOOST_AUTO_TEST_CASE(test_acquisition_serialization) {
-    Acquisition acq;
-    acq.resize(256, 16, 3);
-
-    // Fill in some data
-    for (size_t i = 0; i < acq.getNumberOfDataElements(); i++) {
-        acq.getDataPtr()[i] = value_from_size_t<std::complex<float> >(i);
-    }
-
-    // Fill trajectory
-    for (size_t i = 0; i < acq.getNumberOfTrajElements(); i++) {
-        acq.getTrajPtr()[i] = value_from_size_t<float>(i);
-    }
-
-    // Test serialization and deserialization
-    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
-    OStreamView ws(ss);
-    IStreamView rs(ss);
-    ISMRMRD::serialize(acq, ws);
-    Acquisition acq2;
-    ISMRMRD::deserialize(acq2, rs);
-
-    // Check that the data is the same
-    BOOST_ASSERT(acq.getHead() == acq2.getHead());
-    BOOST_CHECK_EQUAL_COLLECTIONS(acq.getDataPtr(), acq.getDataPtr() + acq.getNumberOfDataElements(),
-                                  acq2.getDataPtr(), acq2.getDataPtr() + acq2.getNumberOfDataElements());
-    BOOST_CHECK_EQUAL_COLLECTIONS(acq.getTrajPtr(), acq.getTrajPtr() + acq.getNumberOfTrajElements(),
-                                  acq2.getTrajPtr(), acq2.getTrajPtr() + acq2.getNumberOfTrajElements());
-}
-
-typedef boost::mpl::vector<unsigned short, short, unsigned int, int, float, double, std::complex<float>, std::complex<double> > image_types_w_tuples;
-
 BOOST_AUTO_TEST_CASE(test_MetaValue) {
     ISMRMRD::MetaValue value1;
 
@@ -151,6 +118,43 @@ BOOST_AUTO_TEST_CASE(test_MetaContainer_serialization) {
     BOOST_CHECK_EQUAL(value1.as_double("long"), value2.as_double("long"));
     BOOST_CHECK_EQUAL(value1.as_double("string"), value2.as_double("string"));
 }
+
+// Test the serialization of a single acquisition
+BOOST_AUTO_TEST_CASE(test_acquisition_serialization) {
+    Acquisition acq;
+    acq.resize(256, 16, 3);
+
+    // Fill in some data
+    for (size_t i = 0; i < acq.getNumberOfDataElements(); i++) {
+        acq.getDataPtr()[i] = value_from_size_t<std::complex<float> >(i);
+    }
+
+    // Fill trajectory
+    for (size_t i = 0; i < acq.getNumberOfTrajElements(); i++) {
+        acq.getTrajPtr()[i] = value_from_size_t<float>(i);
+    }
+
+    // set some meta data
+    acq.setAttributeString("This is my attribute string");
+
+    // Test serialization and deserialization
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    OStreamView ws(ss);
+    IStreamView rs(ss);
+    ISMRMRD::serialize(acq, ws);
+    Acquisition acq2;
+    ISMRMRD::deserialize(acq2, rs);
+
+    // Check that the data is the same
+    BOOST_ASSERT(acq.getHead() == acq2.getHead());
+    BOOST_CHECK_EQUAL_COLLECTIONS(acq.getDataPtr(), acq.getDataPtr() + acq.getNumberOfDataElements(),
+                                  acq2.getDataPtr(), acq2.getDataPtr() + acq2.getNumberOfDataElements());
+    BOOST_CHECK_EQUAL_COLLECTIONS(acq.getTrajPtr(), acq.getTrajPtr() + acq.getNumberOfTrajElements(),
+                                  acq2.getTrajPtr(), acq2.getTrajPtr() + acq2.getNumberOfTrajElements());
+    BOOST_CHECK_EQUAL(acq.getAttributeString(), acq2.getAttributeString());
+}
+
+typedef boost::mpl::vector<unsigned short, short, unsigned int, int, float, double, std::complex<float>, std::complex<double> > image_types_w_tuples;
 
 // Test the serialization of a single image
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_image_serialization, T, image_types_w_tuples) {
