@@ -38,6 +38,12 @@ endif("${isSystemDir}" STREQUAL "-1")
 set (ISMRMRD_CMAKE_DIR ${PROJECT_SOURCE_DIR}/cmake CACHE PATH
   "Location of CMake scripts")
 
+include(CMakeDependentOption)
+
+cmake_dependent_option(ISMRMRD_STATIC_CRT
+   "Use static MSVC RF Libraries" OFF
+   "MSVC" OFF)
+
 # command line options
 option(USE_HDF5_DATASET_SUPPORT "Compile with support for reading and writing datasets to HDF5 files" ON)
 option(USE_SERIALIZATION_SUPPORT "Compile with support for serialization" ON)
@@ -279,8 +285,6 @@ set(ISMRMRD_TARGET_SOURCES
 )
 
 set(ISMRMRD_TARGET_LINK_LIBS ${ISMRMRD_DATASET_LIBRARIES} ${ISMRMRD_SERIALIZATION_LIBRARIES})
-find_package(PugiXML CONFIG REQUIRED)
-list(APPEND ISMRMRD_TARGET_LINK_LIBS pugixml::pugixml)
 
 if (build4GE)
    list(APPEND ISMRMRD_TARGET_LINK_LIBS pthread z dl)
@@ -290,7 +294,7 @@ endif ()
 # main library
 if (BUILD_STATIC)
   if (WIN32)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<NOT:$<BOOL:${ISMRMRD_STATIC_CRT}>>:DLL>")
   endif()
   set(ISMRMRD_PUGIXML_LIBRARIES pugixml::static)
   add_library(ismrmrd STATIC ${ISMRMRD_TARGET_SOURCES})
@@ -312,12 +316,12 @@ target_compile_definitions(
     ismrmrd
     PUBLIC $<$<CONFIG:Debug>:ISMRMRD_DEBUG>
     INTERFACE $<$<NOT:$<BOOL:${BUILD_STATIC}>>:ISMRMRD_IMPORT>
+    PRIVATE $<$<NOT:$<BOOL:${BUILD_STATIC}>>:ISMRMRD_EXPORT>
     PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>
 )
 
 set_target_properties(ismrmrd
   PROPERTIES
-  DEFINE_SYMBOL ISMRMRD_EXPORT
   EXPORT_NAME ISMRMRD
   VERSION ${ISMRMRD_VERSION_STRING}
   SOVERSION ${ISMRMRD_SOVERSION})

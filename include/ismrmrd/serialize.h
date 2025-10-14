@@ -31,6 +31,7 @@
 
 
 #include "ismrmrd/version.h"
+#include "ismrmrd/ismrmrd.h"
 
 #if ISMRMRD_SERIALIZATION_SUPPORT
 
@@ -56,7 +57,7 @@
 
 // Cereal version requires update if ISMRMRD data structures change
 // Not all ISMRMRD data structures are versioned, so serialization versions must be maintained separately
-#define ISMRMRD_SERIALIZE_VERSION 1
+#define ISMRMRD_SERIALIZE_VERSION 2
 
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<float>::is_iec559, "Serialize only supports IEEE 754 standardized floating point");
 
@@ -64,11 +65,9 @@ static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<floa
 namespace ISMRMRD {
 
 EXPORTISMRMRD size_t ismrmrd_num_of_image_data(const ISMRMRD::ISMRMRD_ImageHeader& hdr);
-EXPORTISMRMRD size_t ismrmrd_num_of_image_attribute_string(const ISMRMRD::ISMRMRD_ImageHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_num_of_acquisition_data(const ISMRMRD::ISMRMRD_AcquisitionHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_num_of_acquisition_traj(const ISMRMRD::ISMRMRD_AcquisitionHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_size_of_image_data(const ISMRMRD::ISMRMRD_ImageHeader& hdr);
-EXPORTISMRMRD size_t ismrmrd_size_of_image_attribute_string(const ISMRMRD::ISMRMRD_ImageHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_size_of_acquisition_data(const ISMRMRD::ISMRMRD_AcquisitionHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_size_of_acquisition_traj(const ISMRMRD::ISMRMRD_AcquisitionHeader& hdr);
 EXPORTISMRMRD size_t ismrmrd_num_of_waveform_data(const ISMRMRD::ISMRMRD_WaveformHeader& hdr);
@@ -190,12 +189,13 @@ void archive_data(Archive &ar, uint16_t data_type, void *data, size_t datasize) 
 }
 
 template <class Archive>
-void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, char* attribute_string,
-                 size_t attr_str_sz, CompressionParameters const& params = CompressionParameters()) {
+void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* data, size_t data_sz, const char* attribute_string,
+    CompressionParameters const& params = CompressionParameters()) {
     ar(make_nvp("head", hdr));
-
-    if (hdr.attribute_string_len > 0)
-        ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
+    if (hdr.attribute_string_len > 0) {
+        ar(make_nvp("attribute_string", binary_data(attribute_string,
+            ISMRMRD::ismrmrd_size_of_attribute_string(hdr.attribute_string_len, attribute_string))));
+    }
 
     ar(make_nvp("compression", params));
 
@@ -215,9 +215,12 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader const &hdr, void* dat
 }
 
 template<class Archive>
-void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, void* attribute_string, size_t attr_str_sz){
-    if (hdr.attribute_string_len > 0)
-        ar(make_nvp("attribute_string", binary_data(attribute_string, attr_str_sz)));
+void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, size_t data_sz, char* attribute_string){
+    if (hdr.attribute_string_len > 0) {
+        ar(make_nvp("attribute_string", binary_data(attribute_string,
+            ISMRMRD::ismrmrd_size_of_attribute_string(hdr.attribute_string_len, attribute_string))));
+        attribute_string[hdr.attribute_string_len] = '\0';
+    }
 
     CompressionParameters params;
     ar(make_nvp("compression", params));
@@ -239,7 +242,8 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &hdr, void* data, siz
 }
 
 template <class Archive>
-void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz, CompressionParameters const& params = CompressionParameters()) {
+    void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj,
+        size_t traj_sz, CompressionParameters const& params = CompressionParameters(), char* attribute_string = nullptr) {
     ar(make_nvp("head", hdr));
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
@@ -266,10 +270,22 @@ void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, voi
     default:
         ar(make_nvp("data", binary_data(data, data_sz)));
     }
+
+    if (hdr.attribute_string_len > 0) {
+        ar(make_nvp("attribute_string", binary_data(attribute_string,
+            ISMRMRD::ismrmrd_size_of_attribute_string(hdr.attribute_string_len, attribute_string))));
+    }
+}
+
+template <class Archive>
+void save_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader const &hdr, void* data, size_t data_sz, void* traj,
+    size_t traj_sz, char* attribute_string) {
+    save_helper(ar, hdr, data, data_sz, traj, traj_sz, CompressionParameters(), attribute_string);
 }
 
 template<class Archive>
-void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj, size_t traj_sz){
+void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* data, size_t data_sz, void* traj,
+    size_t traj_sz, char* attribute_string = nullptr){
     if (hdr.trajectory_dimensions) {
         ar(make_nvp("traj", binary_data(traj, traj_sz)));
     }
@@ -296,6 +312,11 @@ void load_helper(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &hdr, void* dat
     case CompressionType::NONE:
     default:
         ar(make_nvp("data", binary_data(data, data_sz)));
+    }
+
+    if (hdr.attribute_string_len > 0) {
+        ar(make_nvp("attribute_string", binary_data(attribute_string, ISMRMRD::ismrmrd_size_of_attribute_string(hdr.attribute_string_len, attribute_string))));
+        attribute_string[hdr.attribute_string_len] = '\0';
     }
 }
 
@@ -494,7 +515,7 @@ void CEREAL_SAVE_FUNCTION_NAME(CompressiblePortableBinaryOutputArchive & ar, Bin
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_EncodingCounters &counter, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(
         make_nvp("kspace_encode_step_1", counter.kspace_encode_step_1),
@@ -511,7 +532,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_EncodingCounters &counter, const un
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(
         make_nvp("version", header.version),
@@ -538,11 +559,13 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_AcquisitionHeader &header, const un
         make_nvp("idx", header.idx),
         make_nvp("user_int", header.user_int),
         make_nvp("user_float", header.user_float));
+    if (version > 1)
+        ar(make_nvp("attribute_string_len", header.attribute_string_len));
 }
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(
         make_nvp("version", header.version),
@@ -575,7 +598,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_ImageHeader &header, const unsigned
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_WaveformHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(
         make_nvp("version", header.version),
@@ -591,52 +614,53 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_WaveformHeader &header, const unsig
 
 template <class Archive>
 inline void save(Archive &ar, ISMRMRD::ISMRMRD_Image const &image,  ISMRMRD_UNUSED const unsigned int version) {
-    ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
+    ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string);
 }
 
 template <>
 inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Image const &image,  ISMRMRD_UNUSED const unsigned int version) {
     ismrmrd::save_helper(ar, image.head, image.data, ismrmrd_size_of_image_data(&image), image.attribute_string,
-         ISMRMRD::ismrmrd_size_of_image_attribute_string(&image), ar.getImageCompression());
+        ar.getImageCompression());
 }
 
 template <class Archive>
 void load(Archive &ar, ISMRMRD::ISMRMRD_Image &image, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(make_nvp("head", image.head));
 
     ISMRMRD::ismrmrd_make_consistent_image(&image);
 
-    ismrmrd::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string, ISMRMRD::ismrmrd_size_of_image_attribute_string(&image));
+    ismrmrd::load_helper(ar, image.head, image.data, ISMRMRD::ismrmrd_size_of_image_data(&image), image.attribute_string);
 }
 
 template <class Archive>
 inline void save(Archive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  ISMRMRD_UNUSED const unsigned int version) {
-    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
+    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj,
+    ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), acq.attribute_string);
 }
 
 template <>
 inline void save(cereal::CompressiblePortableBinaryOutputArchive &ar, ISMRMRD::ISMRMRD_Acquisition const &acq,  ISMRMRD_UNUSED const unsigned int version) {
-    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq),
-                                 ar.getAcquisitionCompression());
+    ismrmrd::save_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj,
+    ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), ar.getAcquisitionCompression(), acq.attribute_string);
 }
 
 template <class Archive>
 void load(Archive &ar, ISMRMRD::ISMRMRD_Acquisition &acq, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(make_nvp("head", acq.head));
 
     ISMRMRD::ismrmrd_make_consistent_acquisition(&acq);
 
-    ismrmrd::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj, ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq));
+    ismrmrd::load_helper(ar, acq.head, acq.data, ISMRMRD::ismrmrd_size_of_acquisition_data(&acq), acq.traj,
+        ISMRMRD::ismrmrd_size_of_acquisition_traj(&acq), acq.attribute_string);
 }
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_NDArray &ndArray, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(
         make_nvp("version", ndArray.version),
@@ -653,7 +677,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_NDArray &ndArray, const unsigned in
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::ISMRMRD_Waveform &waveform, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
     ar(make_nvp("head", waveform.head));
 
@@ -666,7 +690,7 @@ void serialize(Archive &ar, ISMRMRD::ISMRMRD_Waveform &waveform, const unsigned 
 
 template <class Archive>
 void serialize(Archive &ar, ISMRMRD::IsmrmrdHeader &header, const unsigned int version) {
-    if (ISMRMRD_SERIALIZE_VERSION != version)
+    if (version < 1 || version > ISMRMRD_SERIALIZE_VERSION)
         throw std::runtime_error("cereal version mismatch");
 
     if (Archive::is_loading::value) {

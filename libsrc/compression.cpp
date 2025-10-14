@@ -162,14 +162,6 @@ size_t ismrmrd_size_of_image_data(const ISMRMRD::ISMRMRD_ImageHeader& hdr){
     return ismrmrd_num_of_image_data(hdr) * ismrmrd_sizeof_data_type(hdr.data_type);
 }
 
-size_t ismrmrd_num_of_image_attribute_chars(const ISMRMRD::ISMRMRD_ImageHeader& hdr){
-    return hdr.attribute_string_len;
-}
-
-size_t ismrmrd_size_of_image_attribute_string(const ISMRMRD::ISMRMRD_ImageHeader& hdr){
-    return ismrmrd_num_of_image_attribute_chars(hdr); // attribute's char* has sizeof 1
-}
-
 size_t ismrmrd_num_of_acquisition_data(const ISMRMRD::ISMRMRD_AcquisitionHeader& hdr){
     return hdr.number_of_samples * hdr.active_channels;
 }
