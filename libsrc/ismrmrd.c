@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "ismrmrd/version.h"
 #include "ismrmrd/vstypes.h"
+#include <stddef.h>  // for size_t
 
 /* Language and Cross platform section for defining types */
 #ifdef __cplusplus
@@ -36,6 +37,30 @@ static void ismrmrd_error_default(const char *file, int line,
 static ISMRMRD_error_node_t *error_stack_head = NULL;
 static ismrmrd_error_handler_t ismrmrd_error_handler = ismrmrd_error_default;
 
+/* Attribute string functions */
+size_t ismrmrd_size_of_attribute_string(size_t attribute_string_len, const char *attribute_string) {
+    return attribute_string_len * sizeof(*attribute_string);
+}
+
+int ismrmrd_realloc_attribute_string(char **attribute_string_ptr, size_t attribute_string_len) {
+    size_t attr_size = 0;
+
+    if (attribute_string_ptr == NULL) {
+        return ISMRMRD_PUSH_ERR(ISMRMRD_RUNTIMEERROR, "Attribute string pointer should not be NULL.");
+    }
+    attr_size = ismrmrd_size_of_attribute_string(attribute_string_len, *attribute_string_ptr);
+    if (attr_size > 0) {
+        // Allocate space plus a null-terminating character
+        char *newPtr = (char *)realloc(*attribute_string_ptr, attr_size + sizeof(**attribute_string_ptr));
+        if (newPtr == NULL) {
+            return ISMRMRD_PUSH_ERR(ISMRMRD_MEMORYERROR, "Failed to realloc attribute string.");
+        }
+        *attribute_string_ptr = newPtr;
+        // Set the null terminating character
+        (*attribute_string_ptr)[attribute_string_len] = '\0';
+    }
+    return 0; // success
+}
 
 /* Acquisition functions */
 int ismrmrd_init_acquisition_header(ISMRMRD_AcquisitionHeader *hdr) {
@@ -58,6 +83,7 @@ int ismrmrd_init_acquisition(ISMRMRD_Acquisition *acq) {
     ismrmrd_init_acquisition_header(&acq->head);
     acq->traj = NULL;
     acq->data = NULL;
+    acq->attribute_string = NULL;
     return ISMRMRD_NOERROR;
 }
 
@@ -65,6 +91,9 @@ int ismrmrd_cleanup_acquisition(ISMRMRD_Acquisition *acq) {
     if (acq == NULL) {
         return ISMRMRD_PUSH_ERR(ISMRMRD_RUNTIMEERROR, "Pointer should not be NULL.");
     }
+
+    free(acq->attribute_string);
+    acq->attribute_string = NULL;
     
     if (acq->data != NULL)
         free(acq->data);
@@ -121,6 +150,9 @@ int ismrmrd_copy_acquisition(ISMRMRD_Acquisition *acqdest, const ISMRMRD_Acquisi
     /* Copy the trajectory and the data */
     memcpy(acqdest->traj, acqsource->traj, ismrmrd_size_of_acquisition_traj(acqsource));
     memcpy(acqdest->data, acqsource->data, ismrmrd_size_of_acquisition_data(acqsource));
+    /* Copy the attribute string */
+    memcpy(acqdest->attribute_string, acqsource->attribute_string,
+           ismrmrd_size_of_acquisition_attribute_string(acqdest));
     return ISMRMRD_NOERROR;
 }
 
@@ -156,6 +188,8 @@ int ismrmrd_make_consistent_acquisition(ISMRMRD_Acquisition *acq) {
         acq->data = newPtr;
     }
 
+    ismrmrd_realloc_attribute_string(&acq->attribute_string, acq->head.attribute_string_len);
+
     return ISMRMRD_NOERROR;
 }
 
@@ -184,6 +218,14 @@ size_t ismrmrd_size_of_acquisition_data(const ISMRMRD_Acquisition *acq) {
     num_data = acq->head.number_of_samples * acq->head.active_channels;
     return num_data * sizeof(*acq->data);
 
+}
+
+size_t ismrmrd_size_of_acquisition_attribute_string(const ISMRMRD_Acquisition *acq) {
+    if (acq==NULL) {
+        ISMRMRD_PUSH_ERR(ISMRMRD_RUNTIMEERROR, "Pointer should not NULL.");
+        return 0;
+    }
+    return ismrmrd_size_of_attribute_string(acq->head.attribute_string_len, acq->attribute_string);
 }
 
 /* Image functions */
@@ -268,22 +310,12 @@ int ismrmrd_copy_image(ISMRMRD_Image *imdest, const ISMRMRD_Image *imsource) {
 }
 
 int ismrmrd_make_consistent_image(ISMRMRD_Image *im) {
-    size_t attr_size, data_size;
+    size_t data_size;
     if (im==NULL) {
         return ISMRMRD_PUSH_ERR(ISMRMRD_RUNTIMEERROR, "Pointer should not NULL.");
     }
    
-    attr_size = ismrmrd_size_of_image_attribute_string(im);
-    if (attr_size > 0) {
-        // Allocate space plus a null-terminating character
-        char *newPtr = (char *)realloc(im->attribute_string, attr_size+sizeof(*im->attribute_string));
-        if (newPtr == NULL) {
-            return ISMRMRD_PUSH_ERR(ISMRMRD_MEMORYERROR, "Failed to realloc image attribute string");
-        }
-        im->attribute_string = newPtr;
-        // Set the null terminating character
-        im->attribute_string[im->head.attribute_string_len] = '\0';
-    }
+    ismrmrd_realloc_attribute_string(&im->attribute_string, im->head.attribute_string_len);
         
     data_size = ismrmrd_size_of_image_data(im);
     if (data_size > 0) {
@@ -322,7 +354,7 @@ size_t ismrmrd_size_of_image_attribute_string(const ISMRMRD_Image *im) {
         ISMRMRD_PUSH_ERR(ISMRMRD_RUNTIMEERROR, "Pointer should not be NULL.");
         return 0;
     }
-    return im->head.attribute_string_len * sizeof(*im->attribute_string);
+    return ismrmrd_size_of_attribute_string(im->head.attribute_string_len, im->attribute_string);
 }
 
 /* NDArray functions */

@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_Image_cross_serialize, T, test_types) {
     *static_cast<T*>(value2.data) = 999;
     char different_str[] = "abcde";
     value2.attribute_string = different_str;
-    value2.head.attribute_string_len = sizeof(different_str);
+    value2.head.attribute_string_len = strlen(different_str);
     check_cross2(value1, value2);
 }
 

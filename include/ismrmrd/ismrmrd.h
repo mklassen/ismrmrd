@@ -290,13 +290,14 @@ typedef struct ISMRMRD_AcquisitionHeader {
     ISMRMRD_EncodingCounters idx;                        /**< Encoding loop counters, see above */
     int32_t user_int[ISMRMRD_USER_INTS];                 /**< Free user parameters */
     float user_float[ISMRMRD_USER_FLOATS];               /**< Free user parameters */
+    uint32_t attribute_string_len;                       /**< Length of attributes string */
 } ISMRMRD_AcquisitionHeader;
 
 #if __cplusplus > 199711L // Static assert requires C++11
 // Check standard layout
 static_assert(std::is_standard_layout<ISMRMRD_AcquisitionHeader>::value, "ISMRMRD_AcquisitionHeader is not a standard layout type");
 // Check for size and offset of AcquisitionHeader struct members
-static_assert(sizeof(ISMRMRD_AcquisitionHeader) == 340, "ISMRMRD_AcquisitionHeader is not the expected size");
+static_assert(sizeof(ISMRMRD_AcquisitionHeader) == 344, "ISMRMRD_AcquisitionHeader is not the expected size");
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, version) == 0, "version is not at the expected offset");
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, flags) == 2, "flags is not at the expected offset");
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, measurement_uid) == 10, "measurement_uid is not at the expected offset");
@@ -321,6 +322,7 @@ static_assert(offsetof(ISMRMRD_AcquisitionHeader, patient_table_position) == 230
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, idx) == 242, "idx is not at the expected offset");
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, user_int) == 276, "user_int is not at the expected offset");
 static_assert(offsetof(ISMRMRD_AcquisitionHeader, user_float) == 308, "user_float is not at the expected offset");
+static_assert(offsetof(ISMRMRD_AcquisitionHeader, attribute_string_len) == 340, "attribute_string_len is not at the expected offset");
 #endif
 
 /**
@@ -335,6 +337,7 @@ typedef struct ISMRMRD_Acquisition {
     ISMRMRD_AcquisitionHeader head; /**< Header, see above */
     float *traj;
     complex_float_t *data;
+    char *attribute_string;
 } ISMRMRD_Acquisition;
 
 /** @addtogroup capi
@@ -348,6 +351,8 @@ EXPORTISMRMRD int ismrmrd_copy_acquisition(ISMRMRD_Acquisition *acqdest, const I
 EXPORTISMRMRD int ismrmrd_make_consistent_acquisition(ISMRMRD_Acquisition *acq);
 EXPORTISMRMRD size_t ismrmrd_size_of_acquisition_traj(const ISMRMRD_Acquisition *acq);
 EXPORTISMRMRD size_t ismrmrd_size_of_acquisition_data(const ISMRMRD_Acquisition *acq);
+size_t ismrmrd_size_of_attribute_string(size_t attribute_string_len, const char *attribute_string);
+EXPORTISMRMRD size_t ismrmrd_size_of_acquisition_attribute_string(const ISMRMRD_Acquisition *acq);
 /** @} */
 
 /**********/
@@ -588,6 +593,22 @@ public:
 
 };
 
+/// Base class for handling Acquisition and Image attribute string
+class EXPORTISMRMRD AttributeStringHandler {
+protected:
+    char **attribute_string_;
+    uint32_t *attribute_string_len_;
+public:
+    AttributeStringHandler() {}
+    AttributeStringHandler(char **attr_str, uint32_t *attr_len);
+    void bind(char **attr_str, uint32_t *attr_len);
+    void getAttributeString(std::string &attr) const;
+    const char *getAttributeString() const;
+    void setAttributeString(const std::string &attr);
+    void setAttributeString(const char *attr);
+    size_t getAttributeStringLength() const;
+};
+
 /// Header for MR Acquisition type
 class EXPORTISMRMRD AcquisitionHeader: public ISMRMRD_AcquisitionHeader {
 public:
@@ -618,7 +639,7 @@ static_assert(std::is_standard_layout<AcquisitionHeader>::value, "AcquisitionHea
 #endif
 
 /// MR Acquisition type
-class EXPORTISMRMRD Acquisition {
+class EXPORTISMRMRD Acquisition : public AttributeStringHandler {
     friend class Dataset;
     friend class Serialize;
 public:
@@ -635,6 +656,11 @@ public:
     bool operator==(Acquisition const &other) const;
 
     ~Acquisition();
+
+    // Attribute string methods
+    using AttributeStringHandler::getAttributeString;
+    using AttributeStringHandler::setAttributeString;
+    using AttributeStringHandler::getAttributeStringLength;
 
     // Accessors and mutators
     uint16_t version() const;
@@ -795,7 +821,7 @@ static_assert(std::is_standard_layout<ImageHeader>::value, "ImageHeader is not a
 #endif
 
 /// MR Image type
-template <typename T> class EXPORTISMRMRD Image {
+template <typename T> class EXPORTISMRMRD Image : public AttributeStringHandler {
     friend class Dataset;
     friend class Serialize;
 public:
@@ -814,6 +840,11 @@ public:
     bool operator==(const Image<T> &other) const;
 
     ~Image();
+
+    // Attribute string methods
+    using AttributeStringHandler::getAttributeString;
+    using AttributeStringHandler::setAttributeString;
+    using AttributeStringHandler::getAttributeStringLength;
 
     // Image dimensions
     void resize(uint16_t matrix_size_x, uint16_t matrix_size_y, uint16_t matrix_size_z, uint16_t channels);
@@ -937,13 +968,6 @@ public:
     ImageHeader & getHead();
     const ImageHeader & getHead() const;
     void setHead(const ImageHeader& head);
-
-    // Attribute string
-    void getAttributeString(std::string &attr) const;
-    const char *getAttributeString() const;
-    void setAttributeString(const std::string &attr);
-    void setAttributeString(const char *attr);
-    size_t getAttributeStringLength() const;
 
     // Data
     T * getDataPtr();

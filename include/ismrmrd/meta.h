@@ -7,6 +7,9 @@
 #ifndef ISMRMRDMETA_H
 #define ISMRMRDMETA_H
 
+#include <iomanip>
+#include <limits>
+
 #include "ismrmrd/export.h"
 
 #include <string>
@@ -121,8 +124,9 @@ namespace ISMRMRD {
 
         void set(const char *s) {
             s_ = std::string(s);
-            sscanf(s_.c_str(), "%ld", &l_);
+            d_ = 0;
             sscanf(s_.c_str(), "%lf", &d_);
+            l_ = static_cast<long>(d_);
         }
 
         void set(long l) {
@@ -134,13 +138,72 @@ namespace ISMRMRD {
             strstream >> s_;
         }
 
+        size_t stripTrailingZeros(std::string& scientificVal) {
+            // Split into mantissa and exponent (support both 'e' and 'E')
+            size_t ePos = scientificVal.find_first_of("eE");
+            std::string mantissa = scientificVal.substr(0, ePos);
+            std::string exponent = (ePos == std::string::npos)? "" : scientificVal.substr(ePos);
+
+            size_t trimmed = 0;
+
+            // Only act if there is a decimal point
+            size_t dotPos = mantissa.find('.');
+            if (dotPos != std::string::npos) {
+                // Walk backward over trailing zeros in the fractional part
+                size_t i = mantissa.size();
+                while (i > dotPos + 1 && mantissa[i - 1] == '0') {
+                    --i;
+                    ++trimmed;
+                }
+
+                // If we found any zeros to trim, erase them
+                if (trimmed > 0) {
+                    mantissa.erase(i);
+                }
+
+                // If decimal point is now the last character, remove it (doesn't affect 'trimmed')
+                if (!mantissa.empty() && mantissa[mantissa.size() - 1] == '.') {
+                    mantissa.erase(mantissa.size() - 1);
+                }
+            }
+
+            scientificVal = mantissa + exponent;
+            return trimmed;
+        }
+
+        void stripZeroExponent(std::string& scientificVal) {
+            size_t ePos = scientificVal.find_first_of("eE");
+            if (ePos != std::string::npos && std::atoi(scientificVal.substr(ePos+2).c_str()) == 0)
+                scientificVal.erase(ePos);
+        }
+
+
         void set(double d) {
             d_ = d;
             l_ = static_cast<long>(d_);
             std::stringstream strstream;
             strstream.imbue(std::locale::classic());
+            // not all decimals can be exactly represented by base 2 doubles
+            // to avoid bloat in digits, we use digits10 instead of max_digits10 if it allows for trailing zeros.
+            // eg. 1.2 in decimal is 1.19999999999999996 as a double, when using max_digits10 we get all the digits and
+            // when using digits10 to truncate, rounding returns the value to 1.2
+            // if digits10 does not produce 2 or more trailing zeros, we assume max precision is appropriate
+            strstream << std::scientific << std::setprecision(std::numeric_limits<double>::digits10);
             strstream << d_;
-            strstream >> s_;
+            s_ =  strstream.str();
+            size_t nStripped = stripTrailingZeros(s_);
+            if (nStripped < 2 ) {
+                strstream.str("");
+                strstream << std::scientific;
+#ifdef ISMRMRD_CPP03_SUPPORT
+                strstream << std::setprecision(17);
+#else
+                strstream << std::setprecision(std::numeric_limits<double>::max_digits10);
+#endif
+                strstream << d_;
+                strstream >> s_;
+            }
+            stripZeroExponent(s_);
         }
     };
 

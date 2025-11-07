@@ -165,6 +165,7 @@ typedef struct HDF5_Acquisiton
     ISMRMRD_AcquisitionHeader head;
     hvl_t traj;
     hvl_t data;
+    char *attribute_string;
 } HDF5_Acquisition;
 
 typedef struct HDF5_Waveform
@@ -332,6 +333,8 @@ static hid_t get_hdf5type_acquisitionheader(void) {
     vartype = H5Tarray_create2(H5T_NATIVE_FLOAT, 1, arraydims);
     h5status = H5Tinsert(datatype, "user_float", HOFFSET(ISMRMRD_AcquisitionHeader, user_float), vartype);
     H5Tclose(vartype);
+
+    h5status = H5Tinsert(datatype, "attribute_string_len", HOFFSET(ISMRMRD_AcquisitionHeader, attribute_string_len), H5T_NATIVE_UINT32);
     
     /* Clean up */
     if (h5status < 0) {
@@ -339,6 +342,16 @@ static hid_t get_hdf5type_acquisitionheader(void) {
     }
     
     return datatype;   
+}
+
+static hid_t get_hdf5type_attribute_string(void) {
+    hid_t datatype = H5Tcopy(H5T_C_S1);
+    herr_t h5status = H5Tset_size(datatype, H5T_VARIABLE);
+    if (h5status < 0) {
+        H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, walk_hdf5_errors, NULL);
+        ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Failed get image attribute string data type");
+    }
+    return datatype;
 }
 
 static hid_t get_hdf5type_acquisition(void) {
@@ -361,6 +374,10 @@ static hid_t get_hdf5type_acquisition(void) {
     h5status = H5Tinsert(datatype, "data", HOFFSET(HDF5_Acquisition, data), vlvartype);
     H5Tclose(vartype);
     H5Tclose(vlvartype);
+
+    vartype = get_hdf5type_attribute_string();
+    h5status = H5Tinsert(datatype, "attributes", HOFFSET(HDF5_Acquisition, attribute_string), vartype);
+    H5Tclose(vartype);
     
     if (h5status < 0) {
         ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Failed get acquisition data type");
@@ -430,18 +447,6 @@ static hid_t get_hdf5type_imageheader(void) {
     
     return datatype;   
 }
-
-static hid_t get_hdf5type_image_attribute_string(void) {
-    hid_t datatype = H5Tcopy(H5T_C_S1);
-    herr_t h5status = H5Tset_size(datatype, H5T_VARIABLE);
-    if (h5status < 0) {
-        H5Ewalk2(H5E_DEFAULT, H5E_WALK_UPWARD, walk_hdf5_errors, NULL);
-        ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Failed get image attribute string data type");
-    }
-    return datatype;
-}
-
-
 
 static hid_t get_hdf5type_waveformheader(void) {
     hid_t datatype;
@@ -1202,6 +1207,7 @@ int ismrmrd_append_acquisition(const ISMRMRD_Dataset *dset, const ISMRMRD_Acquis
     hdf5acq[0].traj.p = acq->traj;
     hdf5acq[0].data.len = 2 * (size_t)(acq->head.number_of_samples) * (size_t)(acq->head.active_channels);
     hdf5acq[0].data.p = acq->data;
+    hdf5acq[0].attribute_string = acq->attribute_string;
 
     /* Write it */
     status = append_element(dset, path, hdf5acq, datatype, 0, NULL);
@@ -1245,8 +1251,16 @@ int ismrmrd_read_acquisition(const ISMRMRD_Dataset *dset, uint32_t index, ISMRMR
 
     status = read_element(dset, path, &hdf5acq, datatype, index);
     memcpy(&acq->head, &hdf5acq.head, sizeof(ISMRMRD_AcquisitionHeader));
-    acq->traj = hdf5acq.traj.p;
-    acq->data = hdf5acq.data.p;
+    ismrmrd_make_consistent_acquisition(acq);
+    memcpy(acq->data, hdf5acq.data.p, ismrmrd_size_of_acquisition_data(acq));
+    memcpy(acq->traj, hdf5acq.traj.p, ismrmrd_size_of_acquisition_traj(acq));
+    if (hdf5acq.attribute_string != NULL)
+        memcpy(acq->attribute_string, hdf5acq.attribute_string, strlen(hdf5acq.attribute_string));
+
+    // HDF allocated memory needs to be freed with H5free_memory
+    H5free_memory(hdf5acq.attribute_string);
+    H5free_memory(hdf5acq.data.p);
+    H5free_memory(hdf5acq.traj.p);
 
     /* clean up */
     free(path);
@@ -1294,7 +1308,7 @@ int ismrmrd_append_image(const ISMRMRD_Dataset *dset, const char *varname, const
 
     /* Handle the attribute string */
     attrpath = append_to_path(dset, path, "attributes");
-    datatype = get_hdf5type_image_attribute_string();
+    datatype = get_hdf5type_attribute_string();
     status = append_element(dset, attrpath, (void *) &im->attribute_string, datatype, 0, NULL);
     free(attrpath);
     if (status != ISMRMRD_NOERROR) {
@@ -1398,7 +1412,7 @@ int ismrmrd_read_image(const ISMRMRD_Dataset *dset, const char *varname,
 
     /* Handle the attribute string */
     attrpath = append_to_path(dset, path, "attributes");
-    datatype = get_hdf5type_image_attribute_string();
+    datatype = get_hdf5type_attribute_string();
     status = read_element(dset, attrpath, (void *) &attr_string, datatype, index);
     if (status != ISMRMRD_NOERROR) {
         free(path);
@@ -1501,7 +1515,7 @@ int ismrmrd_read_waveform(const ISMRMRD_Dataset *dset, uint32_t index, ISMRMRD_W
 
     /* clean up */
     free(path);
-    free(hdf5wav.data.p);
+    H5free_memory(hdf5wav.data.p);
 
     status = H5Tclose(datatype);
     if (status < 0) {

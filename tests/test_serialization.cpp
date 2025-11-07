@@ -3,6 +3,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "ismrmrd/dataset.h"
+#include "ismrmrd/meta.h"
 #include "ismrmrd/serialization.h"
 #include "ismrmrd/serialization_iostream.h"
 
@@ -30,6 +32,93 @@ std::complex<float> value_from_size_t<std::complex<float> >(size_t i) { return s
 template <>
 std::complex<double> value_from_size_t<std::complex<double> >(size_t i) { return std::complex<double>(1.0f * i, 1.0f * i); }
 
+BOOST_AUTO_TEST_CASE(test_MetaValue) {
+    ISMRMRD::MetaValue value1;
+
+
+    std::vector<std::tuple<std::string,double,long>> tests = {
+        {"test",0,0},
+        {"1test",1,1},
+        {"1teste2",1,1},
+        {"123",123,123},
+        {"1.23",1.23,1},
+        {"1e0",1.0,1},
+        {"0.000123",0.000123,0},
+        {"1.23e-10",1.23e-10,0}, // note: we don't use sscanf on longs, we cast the double
+    };
+
+    for (const auto& test_tuple : tests) {
+
+        const std::string& test = std::get<0>(test_tuple);
+        const double& dexpected = std::get<1>(test_tuple);
+        const long& lexpected = std::get<2>(test_tuple);
+
+        value1 = test.c_str();
+        BOOST_CHECK_EQUAL(value1.as_double(),dexpected);
+        BOOST_CHECK_EQUAL(value1.as_long(),lexpected);
+    }
+
+    std::vector<std::tuple<double, std::string, long>> tests2 = {
+        {1.2,"1.2",1},
+        {123456789.0,"1.23456789e+08",123456789},
+        {1.23456789e10,"1.23456789e+10",12345678900},
+        {1.23456789e-10,"1.23456789e-10",0},
+        {1.123456789012300,"1.1234567890123",1},
+        {1.123456789012340,"1.12345678901233992",1},
+        {1.123456789012345,"1.12345678901234503",1},
+        {1.12345678901234569,"1.12345678901234569",1},
+        {1.00,"1",1},
+        {1.0,"1",1},
+    };
+
+    for (const auto& test_tuple : tests2) {
+        const double& test = std::get<0>(test_tuple);
+        const std::string& strexpected = std::get<1>(test_tuple);
+        const long& lexpected = std::get<2>(test_tuple);
+
+        value1 = test;
+        BOOST_CHECK_EQUAL(value1.as_str(),strexpected);
+        BOOST_CHECK_EQUAL(value1.as_long(),lexpected);
+    }
+
+    std::vector<std::tuple<long, std::string, double>> tests3 = {
+        {123,"123",123.0},
+    };
+
+    for (const auto& test_tuple : tests3) {
+        const long& test = std::get<0>(test_tuple);
+        const std::string& strexpected = std::get<1>(test_tuple);
+        const double& dexpected = std::get<2>(test_tuple);
+
+        value1 = test;
+        BOOST_CHECK_EQUAL(value1.as_str(),strexpected);
+        BOOST_CHECK_EQUAL(value1.as_long(),dexpected);
+    }
+
+}
+
+// Test the serialization of meta container
+BOOST_AUTO_TEST_CASE(test_MetaContainer_serialization) {
+    ISMRMRD::MetaContainer value1;
+    ISMRMRD::MetaContainer value2;
+
+    value1.append("double" , 0.12345);
+    value1.append("long" , 5l);
+    value1.append("string" , "test");
+
+    // Test serialization and deserialization
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    OStreamView ws(ss);
+    IStreamView rs(ss);
+    ISMRMRD::serialize(value1, ss);
+    ISMRMRD::deserialize(ss.str().c_str(), value2);
+
+    // Check that the data is the same
+    BOOST_CHECK_EQUAL(value1.as_double("double"), value2.as_double("double"));
+    BOOST_CHECK_EQUAL(value1.as_double("long"), value2.as_double("long"));
+    BOOST_CHECK_EQUAL(value1.as_double("string"), value2.as_double("string"));
+}
+
 // Test the serialization of a single acquisition
 BOOST_AUTO_TEST_CASE(test_acquisition_serialization) {
     Acquisition acq;
@@ -45,6 +134,9 @@ BOOST_AUTO_TEST_CASE(test_acquisition_serialization) {
         acq.getTrajPtr()[i] = value_from_size_t<float>(i);
     }
 
+    // set some meta data
+    acq.setAttributeString("This is my attribute string");
+
     // Test serialization and deserialization
     std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
     OStreamView ws(ss);
@@ -59,6 +151,7 @@ BOOST_AUTO_TEST_CASE(test_acquisition_serialization) {
                                   acq2.getDataPtr(), acq2.getDataPtr() + acq2.getNumberOfDataElements());
     BOOST_CHECK_EQUAL_COLLECTIONS(acq.getTrajPtr(), acq.getTrajPtr() + acq.getNumberOfTrajElements(),
                                   acq2.getTrajPtr(), acq2.getTrajPtr() + acq2.getNumberOfTrajElements());
+    BOOST_CHECK_EQUAL(acq.getAttributeString(), acq2.getAttributeString());
 }
 
 typedef boost::mpl::vector<unsigned short, short, unsigned int, int, float, double, std::complex<float>, std::complex<double> > image_types_w_tuples;

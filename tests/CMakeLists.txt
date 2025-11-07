@@ -15,7 +15,7 @@ configure_file(embedded_xml.h.in embedded_xml.h)
 
 include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR}/include ${Boost_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-if (!USE_CPP03_SUPPORT)
+if (NOT USE_CPP03_SUPPORT)
     set (c11_tests
         test_ismrmrd.cpp
         test_xml_header.cpp
@@ -46,6 +46,16 @@ endif()
 add_executable(test_ismrmrd ${TEST_SOURCES})
 target_link_libraries(test_ismrmrd ismrmrd ${Boost_LIBRARIES})
 add_test(NAME check COMMAND test_ismrmrd )
+
+if (USE_HDF5_DATASET_SUPPORT)
+   add_dependencies(test_ismrmrd
+         ismrmrd_generate_cartesian_shepp_logan
+         ismrmrd_hdf5_to_stream
+         ismrmrd_stream_to_hdf5
+         ismrmrd_stream_recon_cartesian_2d
+         ismrmrd_recon_cartesian_2d
+   )
+endif()
 
 if (USE_SERIALIZATION_SUPPORT AND NOT USE_CPP03_SUPPORT)
    target_sources(test_ismrmrd
