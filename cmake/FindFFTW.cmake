@@ -108,13 +108,13 @@ if( FFTW_ROOT )
         NO_DEFAULT_PATH
         )
 
-    find_library(
-        FFTW_DOUBLE_MPI_LIB
-        NAMES "fftw3_mpi"
-        PATHS ${FFTW_ROOT}
-        PATH_SUFFIXES "lib" "lib64"
-        NO_DEFAULT_PATH
-        )
+#    find_library(
+#        FFTW_DOUBLE_MPI_LIB
+#        NAMES "fftw3_mpi"
+#        PATHS ${FFTW_ROOT}
+#        PATH_SUFFIXES "lib" "lib64"
+#        NO_DEFAULT_PATH
+#        )
 
     find_library(
         FFTW_FLOAT_LIB
@@ -140,13 +140,13 @@ if( FFTW_ROOT )
         NO_DEFAULT_PATH
         )
 
-    find_library(
-        FFTW_FLOAT_MPI_LIB
-        NAMES "fftw3f_mpi"
-        PATHS ${FFTW_ROOT}
-        PATH_SUFFIXES "lib" "lib64"
-        NO_DEFAULT_PATH
-        )
+#    find_library(
+#        FFTW_FLOAT_MPI_LIB
+#        NAMES "fftw3f_mpi"
+#        PATHS ${FFTW_ROOT}
+#        PATH_SUFFIXES "lib" "lib64"
+#        NO_DEFAULT_PATH
+#        )
 
     find_library(
         FFTW_LONGDOUBLE_LIB
@@ -172,13 +172,13 @@ if( FFTW_ROOT )
         NO_DEFAULT_PATH
         )
 
-    find_library(
-        FFTW_LONGDOUBLE_MPI_LIB
-        NAMES "fftw3l_mpi"
-        PATHS ${FFTW_ROOT}
-        PATH_SUFFIXES "lib" "lib64"
-        NO_DEFAULT_PATH
-        )
+#    find_library(
+#        FFTW_LONGDOUBLE_MPI_LIB
+#        NAMES "fftw3l_mpi"
+#        PATHS ${FFTW_ROOT}
+#        PATH_SUFFIXES "lib" "lib64"
+#        NO_DEFAULT_PATH
+#        )
 
     #find includes
     find_path(FFTW_INCLUDE_DIRS
@@ -208,11 +208,11 @@ else()
         PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
         )
 
-    find_library(
-        FFTW_DOUBLE_MPI_LIB
-        NAMES "fftw3_mpi"
-        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-        )
+#    find_library(
+#        FFTW_DOUBLE_MPI_LIB
+#        NAMES "fftw3_mpi"
+#        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
+#        )
 
     find_library(
         FFTW_FLOAT_LIB
@@ -232,11 +232,11 @@ else()
         PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
         )
 
-    find_library(
-        FFTW_FLOAT_MPI_LIB
-        NAMES "fftw3f_mpi"
-        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-        )
+#    find_library(
+#        FFTW_FLOAT_MPI_LIB
+#        NAMES "fftw3f_mpi"
+#        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
+#        )
 
     find_library(
         FFTW_LONGDOUBLE_LIB
@@ -255,10 +255,10 @@ else()
         PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
         )
 
-    find_library(FFTW_LONGDOUBLE_MPI_LIB
-        NAMES "fftw3l_mpi"
-        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
-        )
+#    find_library(FFTW_LONGDOUBLE_MPI_LIB
+#        NAMES "fftw3l_mpi"
+#        PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
+#        )
 
     find_path(FFTW_INCLUDE_DIRS
         NAMES "fftw3.h"
