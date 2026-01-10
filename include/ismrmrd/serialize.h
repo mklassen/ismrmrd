@@ -8,7 +8,7 @@
  */
 
 #pragma once
-#if defined(__clang__)
+#if __JETBRAINS_IDE__
 #pragma ide diagnostic ignored "OCUnusedStructInspection"
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "EmptyDeclOrStmt"
