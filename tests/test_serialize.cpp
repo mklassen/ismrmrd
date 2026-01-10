@@ -64,7 +64,6 @@ template<typename T1, typename T2>
 void check_cross1(T1 &value1, T2 &value2){
     BOOST_CHECK_NE(ISMRMRD::Serialize::access(value1), value2);
     std::stringstream ss;
-    cereal::ismrmrd::CompressionParameters parameters;
     {
         cereal::CompressiblePortableBinaryOutputArchive oarchive(ss);
         oarchive(value1);
@@ -80,7 +79,6 @@ template<typename T1, typename T2>
 void check_cross2(T1 &value1, T2 &value2){
     BOOST_CHECK_NE(ISMRMRD::Serialize::access(value1), value2);
     std::stringstream ss;
-    cereal::ismrmrd::CompressionParameters parameters;
     {
         cereal::CompressiblePortableBinaryOutputArchive oarchive(ss);
         oarchive(value2);
@@ -371,7 +369,6 @@ BOOST_AUTO_TEST_CASE(test_Waveform_cross_serialize) {
 
     BOOST_CHECK_NE(static_cast<ISMRMRD::ISMRMRD_Waveform>(value1), value2);
     std::stringstream ss;
-    cereal::ismrmrd::CompressionParameters parameters;
     {
         cereal::CompressiblePortableBinaryOutputArchive oarchive(ss);
         oarchive(value1);
