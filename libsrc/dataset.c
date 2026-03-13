@@ -160,7 +160,7 @@ static char ismrmrd_transfer_buffer[ISMRMRD_READ_BUFFER_SIZE];
 /*********************************************/
 /* Private (Static) Functions for HDF5 Types */
 /*********************************************/
-typedef struct HDF5_Acquisiton
+typedef struct HDF5_Acquisition
 {
     ISMRMRD_AcquisitionHeader head;
     hvl_t traj;
