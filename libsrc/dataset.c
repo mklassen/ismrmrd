@@ -633,7 +633,8 @@ static int append_element(const ISMRMRD_Dataset * dset, const char * path,
         void * elem, const hid_t datatype,
         const uint16_t ndim, const size_t *dims)
 {
-    hid_t dataset, dataspace, props, filespace, memspace;
+    hid_t dataset, dataspace, props, filespace, memspace, file_datatype;
+    htri_t same;
     herr_t h5status = 0;
     hsize_t *hdfdims = NULL, *ext_dims = NULL, *offset = NULL, *maxdims = NULL, *chunk_dims = NULL;
     int n = 0, rank = 0;
@@ -646,7 +647,18 @@ static int append_element(const ISMRMRD_Dataset * dset, const char * path,
     if (link_exists(dset, path)) {
         /* open dataset */
         dataset = H5Dopen2(dset->fileid, path, H5P_DEFAULT);
-        /* TODO check that the header dataset's datatype is correct */
+        file_datatype = H5Dget_type(dataset);
+        same = H5Tequal(file_datatype, datatype);
+        if (same <= 0)
+        {
+            char msg[512];
+            n = snprintf(msg, sizeof(msg), "Dataset datatype is incorrect for %s.", path);
+            if (n < 0 || (size_t)n >= sizeof(msg))
+            {
+                return ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Dataset datatype is incorrect.");
+            }
+            return ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, msg);
+        }
         dataspace = H5Dget_space(dataset);
         rank = H5Sget_simple_extent_ndims(dataspace);
         if (rank != ndim + 1) {
@@ -843,7 +855,8 @@ static int get_array_properties(const ISMRMRD_Dataset *dset, const char *path,
 
 int read_element(const ISMRMRD_Dataset *dset, const char *path, void *elem,
                  const hid_t datatype, const uint32_t index) {
-    hid_t dataset, filespace, memspace;
+    hid_t dataset, filespace, memspace, file_datatype;
+    htri_t same;
     hsize_t *hdfdims = NULL, *offset = NULL, *count = NULL;
     herr_t h5status = 0;
     int rank = 0;
@@ -862,7 +875,20 @@ int read_element(const ISMRMRD_Dataset *dset, const char *path, void *elem,
     /* open dataset */
     dataset = H5Dopen2(dset->fileid, path, H5P_DEFAULT);
 
-    /* TODO check that the dataset's datatype is correct */
+    /* Ensure the stored datatype matches the expected data type */
+    file_datatype = H5Dget_type(dataset);
+    same = H5Tequal(file_datatype, datatype);
+    if (same <= 0)
+    {
+        char msg[512];
+        n = snprintf(msg, sizeof(msg), "Dataset datatype is incorrect for %s.", path);
+        if (n < 0 || (size_t)n >= sizeof(msg))
+        {
+            return ISMRMRD_PUSH_ERR(ISMRMRD_FILEERROR, "Dataset datatype is incorrect.");
+        }
+        return ISMRMRD_PUSH_ERR(ISMRMRD_TYPEERROR, msg);
+    }
+
     filespace = H5Dget_space(dataset);
 
     rank = H5Sget_simple_extent_ndims(filespace);
