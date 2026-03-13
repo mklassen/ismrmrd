@@ -1231,7 +1231,7 @@ int ismrmrd_read_acquisition(const ISMRMRD_Dataset *dset, uint32_t index, ISMRMR
 {
     hid_t datatype;
     herr_t status;
-    HDF5_Acquisition hdf5acq;
+    HDF5_Acquisition hdf5acq = {0};
     char *path;
 
     if (dset==NULL) {
@@ -1250,6 +1250,17 @@ int ismrmrd_read_acquisition(const ISMRMRD_Dataset *dset, uint32_t index, ISMRMR
     datatype = get_hdf5type_acquisition();
 
     status = read_element(dset, path, &hdf5acq, datatype, index);
+
+    if (status != ISMRMRD_NOERROR) {
+        // fprintf(stderr,
+        //     "[ISMRMRD DEBUG] read_element failed for path=%s index=%u with error code %i\n",
+        //     path, index, status);
+        // fprintf(stderr, "[ISMRMRD DEBUG] dset->filename=%s\n", dset->filename);
+        // fprintf(stderr, "[ISMRMRD DEBUG] dset->groupname=%s\n", dset->groupname);
+        free(path);
+        H5Tclose(datatype);
+        return ISMRMRD_PUSH_ERR(ISMRMRD_HDF5ERROR, "read_element failed for HDF5_Acquisition");
+    }
     memcpy(&acq->head, &hdf5acq.head, sizeof(ISMRMRD_AcquisitionHeader));
     ismrmrd_make_consistent_acquisition(acq);
     memcpy(acq->data, hdf5acq.data.p, ismrmrd_size_of_acquisition_data(acq));
