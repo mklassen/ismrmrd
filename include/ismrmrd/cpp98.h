@@ -26,13 +26,16 @@ namespace ISMRMRD {
 #ifndef __func__
 #define __func__ __FUNCTION__
 #endif
-#endif
 
+#if _MSC_VER <= 1600
 #define __unaligned
 #define noexcept
 
 #ifndef nullptr
 #define nullptr NULL
+#endif
+#endif
+
 #endif
 
 namespace ISMRMRD {
