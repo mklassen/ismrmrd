@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_nd_array_serialization, T, array_types_w_tupl
 
         size_t N = arr.getNumberOfElements();
         T* p_data = arr.getDataPtr();
-        for (size_t i=0; i<N; i++) p_data[i] = (T)(( (float)(std::rand()) / RAND_MAX -0.5f) * 2048.0f);
+        for (size_t i=0; i<N; i++) p_data[i] = static_cast<T>(( static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX) -0.5f) * 2048.0f);
 
         // Test serialization and deserialization
         std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);

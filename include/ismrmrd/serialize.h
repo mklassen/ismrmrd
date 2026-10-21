@@ -262,7 +262,7 @@ template <class Archive>
     case CompressionType::NHLBI:
     {
         std::vector<uint8_t> compressed_data;
-        ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, params.precision);
+        ISMRMRD::compress_acquisition_nhlbi(data, data_sz, compressed_data, params.tolerance, static_cast<uint8_t>(params.precision));
         ar(make_nvp("data", compressed_data));
     }
     break;
