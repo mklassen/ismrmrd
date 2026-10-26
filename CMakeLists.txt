@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.18.4)
 foreach(p
     CMP0025 # CMake 3.0 Compiler id for Apple Clang is now ``AppleClang``.
     CMP0042 # CMake 3.0 ``MACOSX_RPATH`` is enabled by default.
