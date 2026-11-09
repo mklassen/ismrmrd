@@ -217,10 +217,10 @@ else ()
 endif ()
 
 if (USE_SERIALIZATION_SUPPORT AND NOT USE_CPP03_SUPPORT)
-    find_package(zfp REQUIRED)
+    find_package(zfp REQUIRED COMPONENTS C)
     find_package(cereal REQUIRED)
     set(ISMRMRD_SERIALIZATION_INCLUDE_DIR ${ZFP_INCLUDE_DIRS})
-    set(ISMRMRD_SERIALIZATION_LIBRARIES cereal::cereal ${ZFP_LIBRARIES})
+    set(ISMRMRD_SERIALIZATION_LIBRARIES cereal::cereal)
     set(ISMRMRD_SERIALIZATION_SOURCE libsrc/compression.cpp)
     set(ISMRMRD_SERIALIZATION_SUPPORT true)
 else()
@@ -327,6 +327,10 @@ set_target_properties(ismrmrd
   SOVERSION ${ISMRMRD_SOVERSION})
 
 target_link_libraries(ismrmrd PUBLIC ${ISMRMRD_TARGET_LINK_LIBS})
+if (ISMRMRD_SERIALIZATION_SUPPORT)
+   target_link_libraries(ismrmrd PRIVATE zfp::zfp)
+endif ()
+
 list(APPEND ISMRMRD_LIBRARIES ismrmrd) # Add to list of libraries to be found
 list(APPEND ISMRMRD_LIBRARY_DIRS ${CMAKE_BINARY_DIR} ) # Add to list of directories to find libraries
 

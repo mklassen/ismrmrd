@@ -30,7 +30,6 @@ set(TEST_SOURCES
     test_flags.cpp
     test_channels.cpp
     test_quaternions.cpp
-    ${ISMRMRD_SERIALIZE_TEST}
     test_dataset.cpp
     ${c11_tests}
     test_serialization.cpp)
@@ -63,6 +62,7 @@ if (USE_SERIALIZATION_SUPPORT AND NOT USE_CPP03_SUPPORT)
    target_sources(test_ismrmrd
          PRIVATE test_serialize.cpp
          PRIVATE test_compression.cpp)
+   target_link_libraries(test_ismrmrd zfp::zfp)
 endif()
 
 if (HDF5_FOUND AND NOT USE_CPP03_SUPPORT)
